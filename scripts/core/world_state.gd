@@ -17,6 +17,7 @@ var incarnation_index: int = 0
 var current_life: Dictionary = {}
 var chronicles: Array[Dictionary] = []
 var world_events: Array[String] = []
+var active_dynamic_events: Array[Dictionary] = []
 var notable_people: Array[Dictionary] = []
 var current_rare_encounter: Dictionary = {}
 

@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 errors=[]
 warnings=[]
 
-required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/mobile/mobile_game.gd', ROOT/'scripts/mobile/mobile_card.gd', ROOT/'scripts/mobile/game_content.gd', ROOT/'scripts/mobile/mobile_audio.gd', ROOT/'scripts/mobile/mobile_fx.gd', ROOT/'scripts/mobile/tactical_combat.gd', ROOT/'scripts/mobile/journey_system.gd', ROOT/'scripts/mobile/contract_system.gd', ROOT/'scripts/mobile/relationship_system.gd', ROOT/'scripts/mobile/cultivation_session.gd', ROOT/'export_presets.cfg']
+required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/mobile/mobile_game.gd', ROOT/'scripts/mobile/mobile_card.gd', ROOT/'scripts/mobile/game_content.gd', ROOT/'scripts/mobile/mobile_audio.gd', ROOT/'scripts/mobile/mobile_fx.gd', ROOT/'scripts/mobile/tactical_combat.gd', ROOT/'scripts/mobile/journey_system.gd', ROOT/'scripts/mobile/contract_system.gd', ROOT/'scripts/mobile/relationship_system.gd', ROOT/'scripts/mobile/cultivation_session.gd', ROOT/'scripts/mobile/world_event_system.gd', ROOT/'scripts/mobile/sect_mission_system.gd', ROOT/'export_presets.cfg']
 for p in required:
     if not p.exists(): errors.append(f'missing required file: {p.relative_to(ROOT)}')
 
@@ -84,6 +84,22 @@ for expected in ['play_phase_theme','play_sfx','THEME_NOTES']:
         errors.append(f'mobile audio missing {expected}')
 
 
+gameplay=(ROOT/'scripts/mobile/mobile_game.gd').read_text('utf-8')
+for expected in ['_start_tactical_combat','_render_battle_overlay','_start_journey','_render_journey_overlay','_render_contract_board','_person_action','_cultivate_mode']:
+    if f'func {expected}' not in gameplay:
+        errors.append(f'V0.5 gameplay missing {expected}')
+
+events=(ROOT/'scripts/mobile/world_event_system.gd').read_text('utf-8')
+if events.count('"type":') < 15:
+    errors.append('V0.6 must define at least fifteen world event types')
+sect=(ROOT/'scripts/mobile/sect_mission_system.gd').read_text('utf-8')
+if sect.count('"title":') < 15:
+    errors.append('V0.6 must define at least fifteen sect mission templates')
+if 'func _render_world_events' not in gameplay or 'func _render_sect' not in gameplay:
+    errors.append('V0.6 world events or sect screen missing')
+if 'func _is_phase_unlocked(_phase:int) -> bool:\n\treturn true' not in gameplay:
+    errors.append('V0.6 must keep macro phases open instead of hard realm locks')
+
 print(f'Validated {sum(1 for _ in ROOT.rglob("*.gd"))} GDScript files and {sum(1 for p in ROOT.rglob("*") if p.is_file())} total files.')
 if warnings:
     print('WARNINGS:')
@@ -93,8 +109,3 @@ if errors:
     for e in errors: print(' -',e)
     sys.exit(1)
 print('Static project validation: PASS')
-
-gameplay=(ROOT/'scripts/mobile/mobile_game.gd').read_text('utf-8')
-for expected in ['_start_tactical_combat','_render_battle_overlay','_start_journey','_render_journey_overlay','_render_contract_board','_person_action','_cultivate_mode']:
-    if f'func {expected}' not in gameplay:
-        errors.append(f'V0.5 gameplay missing {expected}')
