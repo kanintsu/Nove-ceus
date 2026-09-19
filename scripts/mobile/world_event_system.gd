@@ -53,7 +53,7 @@ static func ensure_events(events: Array[Dictionary], year: int, day: int, rng: R
 	if events.size() > 30:
 		var kept: Array[Dictionary] = []
 		for event in events:
-			if not bool(event.get("expired",false)) or not bool(event.get("resolved",false)):
+			if not bool(event.get("expired",false)) and not bool(event.get("resolved",false)):
 				kept.append(event)
 		while kept.size() > 30:
 			kept.pop_front()
