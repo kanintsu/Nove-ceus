@@ -19,8 +19,8 @@ jobs:
         run: godot --headless --editor --path reborn --quit
       - name: Boot Reborn main scene
         run: |
-          timeout 12s godot --headless --path reborn --editor --quit-after 3
-          code=$?
+          code=0
+          timeout 12s godot --headless --path reborn --editor --quit-after 3 || code=$?
           test "$code" -eq 0 -o "$code" -eq 124
 
   android:
