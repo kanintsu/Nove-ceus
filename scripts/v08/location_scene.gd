@@ -36,10 +36,10 @@ func _draw_scene()->void:
 		var c:=Color("#2f555b").lerp(Color("#132a30"),float(layer)/2.0)
 		var pts:=PackedVector2Array([Vector2(0,size.y),Vector2(0,base_y)])
 		for i in range(8):
-			var x:=float(i)*size.x/7.0
-			var peak:=base_y-(70.0+float((i*37+phase*19+layer*23)%110))
+			var x:float=float(i)*size.x/7.0
+			var peak:float=base_y-(70.0+float((i*37+phase*19+layer*23)%110))
 			pts.append(Vector2(x,peak))
-		pts.append(Vector2(x+size.x/14.0,base_y-18.0))
+			pts.append(Vector2(x+size.x/14.0,base_y-18.0))
 		pts.append(Vector2(size.x,size.y))
 		draw_colored_polygon(pts,Color(c,0.50+layer*0.16))
 
