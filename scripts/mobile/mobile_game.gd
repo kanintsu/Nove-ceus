@@ -12,6 +12,8 @@ const JourneySystemScript = preload("res://scripts/mobile/journey_system.gd")
 const ContractSystemScript = preload("res://scripts/mobile/contract_system.gd")
 const RelationshipSystemScript = preload("res://scripts/mobile/relationship_system.gd")
 const CultivationSessionScript = preload("res://scripts/mobile/cultivation_session.gd")
+const WorldEventSystemScript = preload("res://scripts/mobile/world_event_system.gd")
+const SectMissionSystemScript = preload("res://scripts/mobile/sect_mission_system.gd")
 
 const REALMS: Array[String] = [
 	"Mortal",
@@ -113,6 +115,7 @@ var inventory_filter := "Todos"
 var map_selected_location := "spring_village"
 var active_battle: Dictionary = {}
 var active_journey: Dictionary = {}
+var pending_world_event_uid := ""
 var life_over := false
 var music_enabled := true
 
@@ -140,6 +143,8 @@ func _ready() -> void:
 	world_state.calendar_changed.connect(_on_calendar_changed)
 	world_state.rare_encounter_changed.connect(_on_rare_encounter_changed)
 	_initialize_life_runtime()
+	WorldEventSystemScript.ensure_events(world_state.active_dynamic_events,world_state.world_year,world_state.world_day,rng)
+	SectMissionSystemScript.refresh_board(world_state.current_life,world_state.world_year,world_state.world_day,rng)
 
 	audio = MobileAudioScript.new()
 	add_child(audio)
@@ -174,6 +179,7 @@ func _initialize_life_runtime() -> void:
 			{"name":"Tecido comum","qty":2,"kind":"Material","rarity":"Comum","desc":"Material usado em reparos e trocas."}
 		]
 	ContractSystemScript.ensure_contracts(life,_current_phase(),world_state.world_year,world_state.world_day,rng)
+	SectMissionSystemScript.ensure_state(life)
 
 func _build_shell() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
