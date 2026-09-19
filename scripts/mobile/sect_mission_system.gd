@@ -32,6 +32,9 @@ static func ensure_state(life: Dictionary) -> void:
 static func refresh_board(life: Dictionary, year:int, day:int, rng:RandomNumberGenerator) -> void:
 	ensure_state(life)
 	var now := year*360+day
+	for active_mission in life["sect_missions"]:
+		if not bool(active_mission.get("completed",false)) and not bool(active_mission.get("claimed",false)) and now > int(active_mission.get("expires",0)):
+			active_mission["failed"] = true
 	var board: Array = life["sect_available"]
 	var fresh: Array = []
 	for mission in board:
@@ -78,7 +81,7 @@ static func accept(life:Dictionary,uid:String) -> Dictionary:
 	var active: Array = life["sect_missions"]
 	var active_count := 0
 	for mission in active:
-		if not bool(mission.get("completed",false)) and not bool(mission.get("claimed",false)):
+		if not bool(mission.get("completed",false)) and not bool(mission.get("claimed",false)) and not bool(mission.get("failed",false)):
 			active_count += 1
 	if active_count >= 4:
 		return {"ok":false,"text":"Você já carrega quatro missões ativas."}
@@ -95,7 +98,7 @@ static func record_action(life:Dictionary,action:String) -> Array[String]:
 	ensure_state(life)
 	var completed: Array[String] = []
 	for mission in life["sect_missions"]:
-		if bool(mission.get("completed",false)) or bool(mission.get("claimed",false)):
+		if bool(mission.get("completed",false)) or bool(mission.get("claimed",false)) or bool(mission.get("failed",false)):
 			continue
 		if String(mission.get("action","")) != action:
 			continue
