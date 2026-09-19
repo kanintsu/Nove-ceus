@@ -14,6 +14,11 @@ const RelationshipSystemScript = preload("res://scripts/mobile/relationship_syst
 const CultivationSessionScript = preload("res://scripts/mobile/cultivation_session.gd")
 const WorldEventSystemScript = preload("res://scripts/mobile/world_event_system.gd")
 const SectMissionSystemScript = preload("res://scripts/mobile/sect_mission_system.gd")
+const CelestialBackdropScript = preload("res://scripts/mobile/celestial_backdrop.gd")
+const NavTileScript = preload("res://scripts/mobile/nav_tile.gd")
+const EventCardScript = preload("res://scripts/mobile/event_card.gd")
+const OrnateSeparatorScript = preload("res://scripts/mobile/ornate_separator.gd")
+const PortraitMedallionScript = preload("res://scripts/mobile/portrait_medallion.gd")
 
 const REALMS: Array[String] = [
 	"Mortal",
@@ -119,8 +124,7 @@ var pending_world_event_uid := ""
 var life_over := false
 var music_enabled := true
 
-var background: TextureRect
-var background_tint: ColorRect
+var backdrop: Control
 var phase_label: Label
 var header_title: Label
 var header_meta: Label
@@ -185,87 +189,139 @@ func _build_shell() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	theme = _create_mobile_theme()
 
-	background = TextureRect.new()
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(background)
-
-	background_tint = ColorRect.new()
-	background_tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background_tint.color = Color(0.02,0.03,0.04,0.14)
-	background_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(background_tint)
+	backdrop = CelestialBackdropScript.new()
+	add_child(backdrop)
 
 	add_child(fx)
-	move_child(fx,2)
+	move_child(fx,1)
 
-	var top_panel := PanelContainer.new()
-	top_panel.position = Vector2(14,16)
-	top_panel.size = Vector2(692,142)
-	top_panel.add_theme_stylebox_override("panel",_panel_style(Color(0.025,0.045,0.055,0.92),20,_phase_accent()))
-	add_child(top_panel)
+	var veil := ColorRect.new()
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	veil.color = Color(0.015,0.028,0.032,0.10)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(veil)
+	move_child(veil,2)
+
+	# Life header: real UI hierarchy, not a black rectangle over an image.
+	var top_frame := MobileCard.new()
+	top_frame.position = Vector2(12,12)
+	top_frame.size = Vector2(696,170)
+	top_frame.custom_minimum_size = Vector2(696,170)
+	top_frame.panel_color = Color("#10272d")
+	top_frame.border_color = Color("#d1b76b")
+	top_frame.inner_glow = Color("#5e9c96")
+	add_child(top_frame)
 
 	var top_margin := MarginContainer.new()
-	for side in ["margin_left","margin_right","margin_top","margin_bottom"]:
-		top_margin.add_theme_constant_override(side,14)
-	top_panel.add_child(top_margin)
+	top_margin.add_theme_constant_override("margin_left",16)
+	top_margin.add_theme_constant_override("margin_right",14)
+	top_margin.add_theme_constant_override("margin_top",15)
+	top_margin.add_theme_constant_override("margin_bottom",14)
+	top_frame.add_child(top_margin)
 
-	var top_v := VBoxContainer.new()
-	top_v.add_theme_constant_override("separation",2)
-	top_margin.add_child(top_v)
+	var header_row := HBoxContainer.new()
+	header_row.add_theme_constant_override("separation",14)
+	top_margin.add_child(header_row)
 
-	var row := HBoxContainer.new()
-	top_v.add_child(row)
-	phase_label = _label("",14,Color(0.96,0.82,0.52))
-	phase_label.custom_minimum_size = Vector2(500,24)
-	row.add_child(phase_label)
+	var portrait := PortraitMedallionScript.new()
+	portrait.setup(_current_phase(),int(world_state.current_life.get("realm_index",0)),_phase_accent())
+	header_row.add_child(portrait)
+
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.add_theme_constant_override("separation",3)
+	header_row.add_child(info)
+
+	phase_label = _label("",13,Color("#d9c27d"))
+	info.add_child(phase_label)
+
+	header_title = _label("",24,Color("#f2e8c9"))
+	info.add_child(header_title)
+
+	header_meta = _label("",14,Color("#d3dfd8"))
+	info.add_child(header_meta)
+
+	header_resource = _label("",13,Color("#9fd1c5"))
+	header_resource.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.add_child(header_resource)
+
+	var controls := VBoxContainer.new()
+	controls.custom_minimum_size = Vector2(54,0)
+	header_row.add_child(controls)
 	music_button = Button.new()
 	music_button.text = "♫"
-	music_button.custom_minimum_size = Vector2(52,40)
+	music_button.custom_minimum_size = Vector2(52,46)
 	music_button.focus_mode = Control.FOCUS_NONE
 	music_button.pressed.connect(_toggle_music)
-	row.add_child(music_button)
+	controls.add_child(music_button)
+	var seal := Label.new()
+	seal.text = "九\n天"
+	seal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	seal.add_theme_font_size_override("font_size",14)
+	seal.modulate = Color("#d5bd72")
+	controls.add_child(seal)
 
-	header_title = _label("",23,Color(0.98,0.92,0.75))
-	top_v.add_child(header_title)
-	header_meta = _label("",14,Color(0.84,0.88,0.87))
-	top_v.add_child(header_meta)
-	header_resource = _label("",13,Color(0.67,0.83,0.78))
-	top_v.add_child(header_resource)
-
-	screen_title = _label("",27,Color(0.99,0.95,0.84))
-	screen_title.position = Vector2(24,172)
-	screen_title.size = Vector2(672,42)
+	var title_band := PanelContainer.new()
+	title_band.position = Vector2(32,191)
+	title_band.size = Vector2(656,54)
+	var title_style := StyleBoxFlat.new()
+	title_style.bg_color = Color("#122a30")
+	title_style.bg_color.a = 0.84
+	title_style.corner_radius_top_left = 24
+	title_style.corner_radius_top_right = 24
+	title_style.corner_radius_bottom_left = 24
+	title_style.corner_radius_bottom_right = 24
+	title_style.border_width_bottom = 1
+	title_style.border_color = Color(_phase_accent(),0.48)
+	title_band.add_theme_stylebox_override("panel",title_style)
+	add_child(title_band)
+	screen_title = _label("",25,Color("#f3e5b9"))
 	screen_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(screen_title)
+	screen_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_band.add_child(screen_title)
 
 	content_scroll = ScrollContainer.new()
-	content_scroll.position = Vector2(18,222)
-	content_scroll.size = Vector2(684,866)
+	content_scroll.position = Vector2(18,258)
+	content_scroll.size = Vector2(684,834)
 	content_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content_scroll.add_theme_constant_override("scrollbar_margin_left",6)
 	add_child(content_scroll)
 
 	content = VBoxContainer.new()
 	content.custom_minimum_size = Vector2(668,0)
-	content.add_theme_constant_override("separation",13)
+	content.add_theme_constant_override("separation",14)
 	content_scroll.add_child(content)
 
-	toast = _label("",15,Color.WHITE)
+	toast = _label("",15,Color("#f4ead1"))
 	toast.position = Vector2(42,1018)
 	toast.size = Vector2(636,66)
 	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	toast.add_theme_stylebox_override("normal",_panel_style(Color(0.02,0.035,0.045,0.95),15,_phase_accent()))
+	toast.add_theme_stylebox_override("normal",_panel_style(Color("#10272d"),16,Color(_phase_accent(),0.8)))
 	toast.visible = false
 	toast.z_index = 40
 	add_child(toast)
 
+	# Dedicated symbolic navigation; no generic giant rectangular buttons.
+	var nav_back := PanelContainer.new()
+	nav_back.position = Vector2(6,1108)
+	nav_back.size = Vector2(708,158)
+	var nav_style := StyleBoxFlat.new()
+	nav_style.bg_color = Color("#09191e")
+	nav_style.bg_color.a = 0.96
+	nav_style.corner_radius_top_left = 26
+	nav_style.corner_radius_top_right = 26
+	nav_style.corner_radius_bottom_left = 12
+	nav_style.corner_radius_bottom_right = 12
+	nav_style.border_width_top = 1
+	nav_style.border_color = Color(_phase_accent(),0.46)
+	nav_back.add_theme_stylebox_override("panel",nav_style)
+	add_child(nav_back)
+
 	bottom_nav = HBoxContainer.new()
-	bottom_nav.position = Vector2(10,1102)
-	bottom_nav.size = Vector2(700,164)
+	bottom_nav.position = Vector2(12,1118)
+	bottom_nav.size = Vector2(696,140)
 	bottom_nav.add_theme_constant_override("separation",5)
 	add_child(bottom_nav)
 
@@ -274,18 +330,15 @@ func _build_shell() -> void:
 		["people","PESSOAS"],["inventory","BOLSA"],["chronicle","CRÔNICA"]
 	]:
 		var key: String = data[0]
-		var btn := Button.new()
-		btn.text = data[1]
-		btn.custom_minimum_size = Vector2(112,126)
-		btn.add_theme_font_size_override("font_size",12)
-		btn.focus_mode = Control.FOCUS_NONE
+		var btn := NavTileScript.new()
+		btn.setup(key,String(data[1]),_phase_accent())
 		btn.pressed.connect(_nav_pressed.bind(key))
 		bottom_nav.add_child(btn)
 		nav_buttons[key] = btn
 
 	overlay = ColorRect.new()
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0.008,0.012,0.018,0.91)
+	overlay.color = Color(0.005,0.012,0.016,0.88)
 	overlay.z_index = 100
 	overlay.visible = false
 	add_child(overlay)
@@ -293,14 +346,18 @@ func _build_shell() -> void:
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
-	var event_panel := PanelContainer.new()
-	event_panel.custom_minimum_size = Vector2(620,0)
-	event_panel.add_theme_stylebox_override("panel",_panel_style(Color(0.045,0.065,0.075,0.99),22,_phase_accent()))
-	center.add_child(event_panel)
+	var event_frame := MobileCard.new()
+	event_frame.custom_minimum_size = Vector2(620,0)
+	event_frame.panel_color = Color("#10272d")
+	event_frame.border_color = Color("#d5ba6a")
+	event_frame.inner_glow = Color("#5b9e97")
+	center.add_child(event_frame)
 	var event_margin := MarginContainer.new()
-	for side in ["margin_left","margin_right","margin_top","margin_bottom"]:
-		event_margin.add_theme_constant_override(side,22)
-	event_panel.add_child(event_margin)
+	event_margin.add_theme_constant_override("margin_left",22)
+	event_margin.add_theme_constant_override("margin_right",22)
+	event_margin.add_theme_constant_override("margin_top",24)
+	event_margin.add_theme_constant_override("margin_bottom",22)
+	event_frame.add_child(event_margin)
 	overlay_box = VBoxContainer.new()
 	overlay_box.add_theme_constant_override("separation",15)
 	event_margin.add_child(overlay_box)
@@ -313,8 +370,11 @@ func _show_screen(screen_key: String) -> void:
 	current_screen = screen_key
 	_clear_content()
 	for key in nav_buttons.keys():
-		var b: Button = nav_buttons[key]
-		b.disabled = key == screen_key
+		var b = nav_buttons[key]
+		if b.has_method("set_selected"):
+			b.set_selected(key == screen_key)
+		else:
+			b.disabled = key == screen_key
 
 	match screen_key:
 		"life": _render_life()
@@ -335,7 +395,8 @@ func _clear_content() -> void:
 
 func _update_phase_presentation() -> void:
 	var phase := _current_phase()
-	background.texture = load(String(PHASE_BACKGROUNDS.get(phase,PHASE_BACKGROUNDS[1])))
+	if backdrop != null and backdrop.has_method("set_phase"):
+		backdrop.set_phase(phase)
 	if fx != null:
 		fx.set_phase(phase)
 	if audio != null:
@@ -491,7 +552,8 @@ func _map_location_selected(key:String) -> void:
 	map_selected_location = key
 	audio.play_sfx("tap")
 	_show_screen("map")
-	background.texture = load(String(PHASE_BACKGROUNDS[selected_map_phase]))
+	if backdrop != null and backdrop.has_method("set_phase"):
+		backdrop.set_phase(selected_map_phase)
 	if fx != null:
 		fx.set_phase(selected_map_phase)
 
