@@ -1,0 +1,50 @@
+name: Build Nove Ceus Reborn
+
+on:
+  push:
+    branches: [ reborn-from-zero ]
+    paths:
+      - "reborn/**"
+      - ".github/workflows/build-reborn.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.7.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Import Reborn project
+        run: godot --headless --editor --path reborn --quit
+      - name: Boot Reborn main scene
+        run: |
+          timeout 12s godot --headless --path reborn --editor --quit-after 3
+          code=$?
+          test "$code" -eq 0 -o "$code" -eq 124
+
+  android:
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.7.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Godot export environment
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates
+          mkdir -p ~/.config
+          cp -a /root/.local/share/godot/export_templates/4.7.2.stable ~/.local/share/godot/export_templates/4.7.2.stable
+          cp -a /root/.config/godot ~/.config/godot
+      - name: Import Reborn project
+        run: godot --headless --editor --path reborn --quit
+      - name: Export Android debug APK
+        run: |
+          mkdir -p reborn/builds
+          godot --headless --verbose --path reborn --export-debug "Android" reborn/builds/NoveCeus-Reborn-v0.1.apk
+          test -s reborn/builds/NoveCeus-Reborn-v0.1.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NoveCeus-Reborn-v0.1-Android
+          path: reborn/builds/NoveCeus-Reborn-v0.1.apk
+          if-no-files-found: error
