@@ -17,7 +17,7 @@ func _build()->void:
 	if mode=="base":_build_base();return
 	if mode=="realms":_build_realms();return
 	var title:=UI.label("OUTROS CAMINHOS",26,Color("#f2e4bd"));title.position=Vector2(20,20);title.size=Vector2(680,40);title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;add_child(title)
-	var items=[["CASA E BASE","Residência, oficina, jardim e biblioteca","base"],["REINOS DE CULTIVO","Do corpo mortal ao além do céu","realms"],["CICLO DE VIDA","Nascimento, envelhecimento, morte e reencarnação","cycle"],["LEGADO","O que permanece depois de uma vida","legacy"],["SEITA DO VÉU CELESTE","Mérito, tarefas e política","sect"]]
+	var items:Array[Array]=[["CASA E BASE","Residência, oficina, jardim e biblioteca","base"],["REINOS DE CULTIVO","Do corpo mortal ao além do céu","realms"],["CICLO DE VIDA","Nascimento, envelhecimento, morte e reencarnação","cycle"],["LEGADO","O que permanece depois de uma vida","legacy"],["SEITA DO VÉU CELESTE","Mérito, tarefas e política","sect"]]
 	for i in range(items.size()):
 		var b:=UI.button("%s\n%s" % [items[i][0],items[i][1]],Color("#d1b76c"),108);b.position=Vector2(36,98+i*132);b.size=Vector2(648,108);var key:String=items[i][2];b.pressed.connect(func():
 			if key=="base" or key=="realms":mode=key;_build()
@@ -27,9 +27,12 @@ func _build()->void:
 func _build_base()->void:
 	var back:=UI.button("‹ VOLTAR",Color("#8bb37c"),48);back.position=Vector2(20,20);back.size=Vector2(140,48);back.pressed.connect(func():mode="menu";_build());add_child(back)
 	var title:=UI.label("CASA E BASE",26,Color("#f2e4bd"));title.position=Vector2(180,20);title.size=Vector2(500,40);add_child(title)
-	var buildings=[["RESIDÊNCIA","rest",Vector2(65,220)],["OFICINA","train",Vector2(415,235)],["JARDIM","work",Vector2(75,500)],["ALQUIMIA","study",Vector2(420,520)],["SALA DE CULTIVO","meditate",Vector2(250,365)],["BIBLIOTECA","study",Vector2(250,720)]]
-	for x in buildings:
-		var b:=UI.button(x[0],Color("#8bb37c"),76);b.position=x[2];b.size=Vector2(230,76);var act:String=x[1];b.pressed.connect(func():base_action.emit(act));add_child(b)
+	var buildings:Array[Array]=[["RESIDÊNCIA","rest",Vector2(65,220)],["OFICINA","train",Vector2(415,235)],["JARDIM","work",Vector2(75,500)],["ALQUIMIA","study",Vector2(420,520)],["SALA DE CULTIVO","meditate",Vector2(250,365)],["BIBLIOTECA","study",Vector2(250,720)]]
+	for x:Array in buildings:
+		var title_text:String=String(x[0])
+		var pos:Vector2=x[2]
+		var act:String=String(x[1])
+		var b:=UI.button(title_text,Color("#8bb37c"),76);b.position=pos;b.size=Vector2(230,76);b.pressed.connect(func():base_action.emit(act));add_child(b)
 
 func _build_realms()->void:
 	var back:=UI.button("‹ VOLTAR",Color("#9c8bd2"),48);back.position=Vector2(20,20);back.size=Vector2(140,48);back.pressed.connect(func():mode="menu";_build());add_child(back)
