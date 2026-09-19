@@ -23,7 +23,7 @@ static func ensure_contracts(life: Dictionary, phase: int, world_year: int, worl
 			contract["failed"] = true
 	var active_count := 0
 	for contract in contracts:
-		if not bool(contract.get("completed",false)) and not bool(contract.get("failed",false)):
+		if not bool(contract.get("completed",false)) and not bool(contract.get("failed",false)) and int(contract.get("phase",phase)) == phase:
 			active_count += 1
 	while active_count < 3:
 		var template: Dictionary = TEMPLATES[rng.randi_range(0,TEMPLATES.size()-1)]
