@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#203847"/><stop offset=".42" stop-color="#708b85"/><stop offset="1" stop-color="#172126"/></linearGradient>
+<radialGradient id="sun"><stop stop-color="#fff1b8" stop-opacity=".95"/><stop offset=".35" stop-color="#d7b269" stop-opacity=".45"/><stop offset="1" stop-color="#d7b269" stop-opacity="0"/></radialGradient>
+<linearGradient id="river" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#89b6b5"/><stop offset="1" stop-color="#2c5960"/></linearGradient>
+<filter id="blur"><feGaussianBlur stdDeviation="12"/></filter>
+</defs>
+<rect width="720" height="1280" fill="url(#sky)"/>
+<circle cx="555" cy="180" r="170" fill="url(#sun)"/>
+<g opacity=".55" fill="#dbe5df"><ellipse cx="160" cy="225" rx="190" ry="48"/><ellipse cx="430" cy="280" rx="260" ry="60"/><ellipse cx="690" cy="330" rx="160" ry="45"/></g>
+<path d="M0 530L105 390 190 490 300 330 420 500 530 360 720 540V720H0Z" fill="#27444b"/>
+<path d="M0 610L120 495 220 590 340 430 470 610 590 470 720 600V790H0Z" fill="#1f3438"/>
+<path d="M390 1280C350 1110 395 980 455 850S560 620 605 520" fill="none" stroke="url(#river)" stroke-width="85" opacity=".8"/>
+<path d="M0 940C170 885 240 835 330 750S460 610 610 565" fill="none" stroke="#9c7b4d" stroke-width="12" opacity=".75"/>
+<g>
+<path d="M65 760h220v18H65z" fill="#4f3928"/><path d="M102 710h145v50H102z" fill="#9a7444"/><path d="M80 710l95-57 95 57z" fill="#512d2b"/>
+<path d="M112 675h125v9H112z" fill="#c09a5c"/><path d="M150 726h48v34h-48z" fill="#352821"/>
+</g>
+<g fill="#1d3030" opacity=".9"><circle cx="85" cy="845" r="45"/><circle cx="140" cy="860" r="55"/><circle cx="250" cy="890" r="62"/><circle cx="305" cy="900" r="46"/></g>
+<g fill="#96ada3" opacity=".18" filter="url(#blur)"><ellipse cx="290" cy="690" rx="330" ry="58"/><ellipse cx="520" cy="820" rx="300" ry="70"/><ellipse cx="250" cy="1040" rx="380" ry="90"/></g>
+<rect y="920" width="720" height="360" fill="#0c1317" opacity=".52"/>
+<g fill="#d7c68a" opacity=".45"><circle cx="96" cy="170" r="2"/><circle cx="212" cy="240" r="1.8"/><circle cx="470" cy="150" r="1.6"/><circle cx="624" cy="290" r="2.4"/></g>
+</svg>
