@@ -447,8 +447,9 @@ func _render_life() -> void:
 		String(loc["desc"]),String(loc["danger"]),_qi_density_label(float(loc["qi"]))
 	]))
 
-	var action_title := _label("AÇÕES DESTE LUGAR",17,Color(0.95,0.84,0.61))
-	content.add_child(action_title)
+	var action_separator := OrnateSeparatorScript.new()
+	action_separator.setup("AÇÕES DESTE LUGAR",_phase_accent())
+	content.add_child(action_separator)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation",10)
@@ -1432,10 +1433,16 @@ func _accept_encounter() -> void:
 func _render_world_events() -> void:
 	WorldEventSystemScript.ensure_events(world_state.active_dynamic_events,world_state.world_year,world_state.world_day,rng)
 	var active: Array[Dictionary] = WorldEventSystemScript.active_events(world_state.active_dynamic_events)
-	var card := _add_card("Eventos do Mundo")
+
+	var separator := OrnateSeparatorScript.new()
+	separator.setup("EVENTOS DO MUNDO",_phase_accent())
+	content.add_child(separator)
+
 	if active.is_empty():
-		card.add_child(_body_label("Nenhum acontecimento importante está ativo neste momento."))
+		var empty := _add_card("O mundo está quieto — por enquanto")
+		empty.add_child(_body_label("Nenhum acontecimento importante está ativo. O calendário continua avançando e novas situações podem surgir."))
 		return
+
 	for event in active:
 		var key: String = String(event.get("location","spring_village"))
 		var location_name := key
@@ -1446,15 +1453,25 @@ func _render_world_events() -> void:
 		var current_realm: int = int(world_state.current_life.get("realm_index",0))
 		var warning := ""
 		if current_realm < recommended:
-			warning = "\n⚠ Recomendado: %s" % REALMS[clampi(recommended,0,REALMS.size()-1)]
-		card.add_child(_body_label("%s · %d dias restantes\n%s\nLocal: %s%s" % [
-			String(event.get("title","Evento")),remaining,String(event.get("text","")),location_name,warning
-		]))
-		var go := Button.new()
-		go.text = "ACOMPANHAR EVENTO"
-		go.custom_minimum_size = Vector2(0,50)
-		go.pressed.connect(_world_event_go.bind(String(event.get("uid",""))))
-		card.add_child(go)
+			warning = "⚠ Recomendado: %s" % REALMS[clampi(recommended,0,REALMS.size()-1)]
+		var event_card := EventCardScript.new()
+		event_card.setup(event,location_name,remaining,warning,_event_accent(String(event.get("type",""))))
+		event_card.follow_requested.connect(_world_event_go)
+		content.add_child(event_card)
+
+func _event_accent(event_type:String) -> Color:
+	match event_type:
+		"spirit_rain": return Color("#79cddd")
+		"plague": return Color("#9ec5a2")
+		"eclipse": return Color("#a58bd1")
+		"faction_conflict","tournament","rogue_bounty": return Color("#d17b5d")
+		"beast_tide": return Color("#c96c62")
+		"herb_bloom": return Color("#8dc68c")
+		"ancient_opening": return Color("#c7a46d")
+		"sect_recruitment": return Color("#e0c36f")
+		"spirit_vein": return Color("#70d1b5")
+		"heaven_omen": return Color("#d4b7ed")
+		_: return _phase_accent()
 
 func _world_event_go(uid:String) -> void:
 	var event: Dictionary = WorldEventSystemScript.find_event(world_state.active_dynamic_events,uid)
@@ -2017,7 +2034,9 @@ func _add_card(title_text:String) -> VBoxContainer:
 	var inner := VBoxContainer.new()
 	inner.add_theme_constant_override("separation",9)
 	margin.add_child(inner)
-	var title := _label(title_text,19,Color(0.96,0.84,0.61))
+	var eyebrow := _label("◇  NOVE CÉUS",10,Color(_phase_accent(),0.72))
+	inner.add_child(eyebrow)
+	var title := _label(title_text,20,Color("#f2e3b9"))
 	inner.add_child(title)
 	return inner
 
@@ -2033,11 +2052,13 @@ func _small_label(text_value:String,color_value:Color) -> Label:
 
 func _standalone_button(title_text:String,subtext:String,callback:Callable,sfx_kind:String="tap") -> Button:
 	var b := Button.new()
-	b.text = "%s\n%s" % [title_text,subtext]
-	b.custom_minimum_size = Vector2(668,84)
+	b.text = "✦  %s\n%s" % [title_text,subtext]
+	b.custom_minimum_size = Vector2(668,88)
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.add_theme_font_size_override("font_size",15)
 	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_stylebox_override("normal",_button_style(Color("#18373b"),Color(_phase_accent(),0.62)))
+	b.add_theme_stylebox_override("pressed",_button_style(Color("#24494b"),_phase_accent()))
 	b.pressed.connect(func() -> void:
 		audio.play_sfx(sfx_kind)
 		callback.call()
@@ -2046,11 +2067,13 @@ func _standalone_button(title_text:String,subtext:String,callback:Callable,sfx_k
 
 func _action_button(title_text:String,subtext:String,callback:Callable) -> Button:
 	var b := Button.new()
-	b.text = "%s\n%s" % [title_text,subtext]
-	b.custom_minimum_size = Vector2(329,94)
+	b.text = "◆  %s\n%s" % [title_text,subtext]
+	b.custom_minimum_size = Vector2(329,102)
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.add_theme_font_size_override("font_size",13)
 	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_stylebox_override("normal",_button_style(Color("#142f34"),Color("#6e9992")))
+	b.add_theme_stylebox_override("pressed",_button_style(Color("#21454a"),_phase_accent()))
 	b.pressed.connect(func() -> void:
 		audio.play_sfx("tap")
 		callback.call()
