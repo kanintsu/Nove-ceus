@@ -7,6 +7,7 @@ signal chronicle_requested
 var title_label: Label
 var calendar_label: Label
 var origin_label: Label
+var age_label: Label
 var realm_label: Label
 var body_label: Label
 var knowledge_label: Label
@@ -45,6 +46,7 @@ func update_world(year: int, day: int, incarnation: int) -> void:
 
 func update_player_state(player: PlayerController) -> void:
 	origin_label.text = "Origem: %s" % String(player.life.get("origin_label", "Desconhecida"))
+	age_label.text = "Idade: %d anos" % int(player.life.get("age", 16))
 	realm_label.text = player.spiritual_status_for_ui()
 	body_label.text = "Corpo: %s · treino %.0f%%" % [player.body_rank(), float(player.life.get("body_training", 0.0))]
 	knowledge_label.text = "Conhecimento mortal: %.0f%%" % float(player.life.get("worldly_knowledge", 0.0))
@@ -97,7 +99,7 @@ func _build_hud() -> void:
 	var shade := ColorRect.new()
 	shade.color = Color(0.015, 0.024, 0.021, 0.76)
 	shade.position = Vector2(18, 18)
-	shade.size = Vector2(356, 208)
+	shade.size = Vector2(356, 236)
 	add_child(shade)
 
 	title_label = _label(Vector2(34, 30), Vector2(330, 28), 20)
@@ -107,21 +109,23 @@ func _build_hud() -> void:
 	add_child(calendar_label)
 	origin_label = _label(Vector2(34, 89), Vector2(330, 22), 14)
 	add_child(origin_label)
-	realm_label = _label(Vector2(34, 114), Vector2(330, 22), 16)
+	age_label = _label(Vector2(34, 114), Vector2(330, 20), 13)
+	add_child(age_label)
+	realm_label = _label(Vector2(34, 138), Vector2(330, 22), 16)
 	realm_label.modulate = Color(0.72, 0.88, 0.80)
 	add_child(realm_label)
-	body_label = _label(Vector2(34, 140), Vector2(330, 20), 13)
+	body_label = _label(Vector2(34, 164), Vector2(330, 20), 13)
 	add_child(body_label)
-	knowledge_label = _label(Vector2(34, 162), Vector2(330, 20), 13)
+	knowledge_label = _label(Vector2(34, 186), Vector2(330, 20), 13)
 	add_child(knowledge_label)
 
 	hp_bar = ProgressBar.new()
-	hp_bar.position = Vector2(34, 188)
+	hp_bar.position = Vector2(34, 212)
 	hp_bar.size = Vector2(154, 13)
 	hp_bar.show_percentage = false
 	add_child(hp_bar)
 	stamina_bar = ProgressBar.new()
-	stamina_bar.position = Vector2(200, 188)
+	stamina_bar.position = Vector2(200, 212)
 	stamina_bar.size = Vector2(154, 13)
 	stamina_bar.show_percentage = false
 	add_child(stamina_bar)
@@ -183,6 +187,8 @@ func _build_death_overlay() -> void:
 	death_overlay = ColorRect.new()
 	death_overlay.color = Color(0.012, 0.012, 0.014, 0.94)
 	death_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	death_overlay.z_index = 100
+	death_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	death_overlay.visible = false
 	add_child(death_overlay)
 	death_title = _label(Vector2(360, 190), Vector2(560, 54), 32)

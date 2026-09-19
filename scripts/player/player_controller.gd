@@ -172,6 +172,44 @@ func study_mortal_knowledge() -> void:
 			game.notify("Você passou sete dias estudando medicina, matemática e registros do mundo mortal.")
 	state_changed.emit()
 
+func live_mortal_season() -> void:
+	if health <= 0.0:
+		return
+	var intelligence := float(life.get("intelligence", 50))
+	var willpower := float(life.get("willpower", 50))
+	var physique := float(life.get("physique", 50))
+	var knowledge_gain := 2.0 + intelligence / 32.0
+	var training_gain := 1.5 + (physique + willpower) / 85.0
+	life["worldly_knowledge"] = minf(float(life.get("worldly_knowledge", 0.0)) + knowledge_gain, 100.0)
+	life["body_training"] = minf(float(life.get("body_training", 0.0)) + training_gain, 100.0)
+	_recalculate_mortal_stats()
+	if game != null and game.has_method("advance_days"):
+		game.advance_days(90)
+	if game != null and game.has_method("is_life_active") and not bool(game.is_life_active()):
+		return
+	_record_mortal_milestones()
+	if game != null and game.has_method("notify"):
+		game.notify("Uma estação passou. Você trabalhou, estudou e treinou enquanto o mundo continuou seguindo sem esperar por você.")
+	state_changed.emit()
+
+func _record_mortal_milestones() -> void:
+	var knowledge := float(life.get("worldly_knowledge", 0.0))
+	var intelligence := int(life.get("intelligence", 50))
+	var milestones: Array = life.get("mortal_milestones", [])
+	if knowledge >= 35.0 and not milestones.has("practical"):
+		milestones.append("practical")
+		if game != null and game.has_method("record_world_event"):
+			game.record_world_event("você aplicou conhecimento mortal para melhorar ferramentas e métodos de trabalho locais.")
+	if knowledge >= 65.0 and intelligence >= 70 and not milestones.has("scholar"):
+		milestones.append("scholar")
+		if game != null and game.has_method("record_world_event"):
+			game.record_world_event("seu nome começou a circular entre estudiosos mortais de Qinghe.")
+	if knowledge >= 90.0 and intelligence >= 82 and not milestones.has("innovator"):
+		milestones.append("innovator")
+		if game != null and game.has_method("record_world_event"):
+			game.record_world_event("uma criação sua passou a ser usada por moradores da região — um legado sem depender de Qi.")
+	life["mortal_milestones"] = milestones
+
 func body_rank() -> String:
 	var training := float(life.get("body_training", 0.0))
 	if training >= 90.0:
