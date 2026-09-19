@@ -6,6 +6,7 @@ const NotablePersonSystemScript = preload("res://scripts/core/notable_person_sys
 const GameContentScript = preload("res://scripts/mobile/game_content.gd")
 const MobileAudioScript = preload("res://scripts/mobile/mobile_audio.gd")
 const MobileFXScript = preload("res://scripts/mobile/mobile_fx.gd")
+const PhaseMapScript = preload("res://scripts/mobile/phase_map_visual.gd")
 
 const REALMS: Array[String] = [
 	"Mortal",
@@ -104,6 +105,7 @@ var current_screen := "life"
 var current_location := "spring_village"
 var selected_map_phase := 1
 var inventory_filter := "Todos"
+var map_selected_location := "spring_village"
 var life_over := false
 var music_enabled := true
 
@@ -401,7 +403,7 @@ func _render_map() -> void:
 	phase_tabs.add_theme_constant_override("separation",6)
 	for n in range(1,6):
 		var tab := Button.new()
-		tab.text = "%d" % n
+		tab.text = "FASE %d" % n
 		tab.custom_minimum_size = Vector2(128,54)
 		tab.focus_mode = Control.FOCUS_NONE
 		tab.disabled = n == selected_map_phase
@@ -411,42 +413,65 @@ func _render_map() -> void:
 
 	var phase_data := GameContentScript.phase(selected_map_phase)
 	var unlocked := _is_phase_unlocked(selected_map_phase)
-	var intro := _add_card("Fase %d · %s" % [selected_map_phase,String(phase_data["name"])])
-	var state := "ACESSÍVEL" if unlocked else "BLOQUEADA"
-	intro.add_child(_body_label("%s\n\n%s\nEstado: %s" % [
-		String(phase_data["subtitle"]),String(phase_data["goal"]),state
+	var intro := _add_card("%s" % String(phase_data["name"]))
+	intro.add_child(_body_label("%s\n\nObjetivo: %s" % [
+		String(phase_data["subtitle"]),String(phase_data["goal"])
 	]))
 	if not unlocked:
 		var required := int(phase_data["required_realm"])
-		intro.add_child(_small_label("Requer: %s" % REALMS[clampi(required,0,REALMS.size()-1)],Color(0.95,0.63,0.55)))
+		intro.add_child(_small_label("BLOQUEADA · Requer %s" % REALMS[clampi(required,0,REALMS.size()-1)],Color(0.96,0.61,0.53)))
 
-	for key in GameContentScript.phase_locations(selected_map_phase):
-		var loc: Dictionary = GameContentScript.LOCATIONS[key]
-		var card := _add_card(String(loc["name"]))
-		card.add_child(_body_label("%s\nPerigo: %s   ·   Qi: %s" % [
-			String(loc["desc"]),String(loc["danger"]),_qi_density_label(float(loc["qi"]))
-		]))
-		var travel := Button.new()
-		travel.custom_minimum_size = Vector2(0,56)
-		travel.focus_mode = Control.FOCUS_NONE
-		if key == current_location:
-			travel.text = "VOCÊ ESTÁ AQUI"
-			travel.disabled = true
-		elif not unlocked:
-			travel.text = "FASE BLOQUEADA"
-			travel.disabled = true
-		else:
-			var days := _travel_days(current_location,key)
-			travel.text = "VIAJAR · %d dias" % days
-			travel.pressed.connect(_travel_to.bind(key,days))
-		card.add_child(travel)
+	var keys: Array[String] = GameContentScript.phase_locations(selected_map_phase)
+	if not keys.has(map_selected_location):
+		map_selected_location = keys[0] if not keys.is_empty() else current_location
 
-func _select_map_phase(value: int) -> void:
+	var visual := PhaseMapScript.new()
+	visual.setup(selected_map_phase,keys,current_location,map_selected_location,unlocked)
+	visual.location_selected.connect(_map_location_selected)
+	content.add_child(visual)
+
+	if not map_selected_location.is_empty() and GameContentScript.LOCATIONS.has(map_selected_location):
+		_render_map_location_detail(map_selected_location,unlocked)
+
+func _render_map_location_detail(key:String,unlocked:bool) -> void:
+	var loc: Dictionary = GameContentScript.LOCATIONS[key]
+	var card := _add_card(String(loc["name"]))
+	card.add_child(_body_label("%s\n\nPerigo: %s   ·   Qi: %s" % [
+		String(loc["desc"]),String(loc["danger"]),_qi_density_label(float(loc["qi"]))
+	]))
+	var actions_text := "Atividades: "
+	for action in loc.get("actions",[]):
+		var def := _action_definition(String(action))
+		actions_text += String(def[0]).capitalize() + " · "
+	card.add_child(_small_label(actions_text.trim_suffix(" · "),Color(0.72,0.82,0.80)))
+	var travel := Button.new()
+	travel.custom_minimum_size = Vector2(0,58)
+	travel.focus_mode = Control.FOCUS_NONE
+	if key == current_location:
+		travel.text = "VOCÊ ESTÁ AQUI"
+		travel.disabled = true
+	elif not unlocked:
+		travel.text = "FASE INACESSÍVEL"
+		travel.disabled = true
+	else:
+		var days := _travel_days(current_location,key)
+		travel.text = "VIAJAR PARA ESTE LUGAR · %d dias" % days
+		travel.pressed.connect(_travel_to.bind(key,days))
+	card.add_child(travel)
+
+func _map_location_selected(key:String) -> void:
+	map_selected_location = key
 	audio.play_sfx("tap")
-	selected_map_phase = clampi(value,1,5)
+	_show_screen("map")
 	background.texture = load(String(PHASE_BACKGROUNDS[selected_map_phase]))
 	if fx != null:
 		fx.set_phase(selected_map_phase)
+
+func _select_map_phase(value:int) -> void:
+	audio.play_sfx("tap")
+	selected_map_phase = clampi(value,1,5)
+	var keys: Array[String] = GameContentScript.phase_locations(selected_map_phase)
+	map_selected_location = current_location if keys.has(current_location) else (keys[0] if not keys.is_empty() else "")
 	_show_screen("map")
 	background.texture = load(String(PHASE_BACKGROUNDS[selected_map_phase]))
 	if fx != null:
