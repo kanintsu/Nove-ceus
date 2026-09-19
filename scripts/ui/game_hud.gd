@@ -187,6 +187,8 @@ func _build_death_overlay() -> void:
 	death_overlay = ColorRect.new()
 	death_overlay.color = Color(0.012, 0.012, 0.014, 0.94)
 	death_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	death_overlay.z_index = 100
+	death_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	death_overlay.visible = false
 	add_child(death_overlay)
 	death_title = _label(Vector2(360, 190), Vector2(560, 54), 32)
