@@ -657,7 +657,7 @@ func _render_chronicle() -> void:
 	var phase_card := _add_card("Fases Conhecidas")
 	var realm_index := int(world_state.current_life.get("realm_index",0))
 	var unlocked := GameContentScript.unlocked_phase_for_realm(realm_index)
-	phase_card.add_child(_body_label("Maior fase acessível: %d / 5\nO mundo possui 40 lugares nesta versão, mas conhecer um nome não significa sobreviver a ele." % unlocked))
+	phase_card.add_child(_body_label("Faixa recomendada pelo seu reino: até Fase %d / 5\nTodas as cinco fases podem ser visitadas. O jogo não impede você de entrar cedo demais — apenas não reduz o perigo para protegê-lo." % unlocked))
 
 	var panel := _add_card("O Mundo se Lembra")
 	var rich := RichTextLabel.new()
@@ -905,6 +905,7 @@ func _journey_combat() -> void:
 func _journey_abort() -> void:
 	_close_overlay()
 	active_journey.clear()
+	pending_world_event_uid = ""
 	_show_toast("Você encerrou a expedição e voltou vivo.")
 	_show_screen("life")
 
@@ -1475,7 +1476,8 @@ func _world_event_resolve(uid:String) -> void:
 		_:
 			WorldEventSystemScript.resolve(world_state.active_dynamic_events,uid)
 			_show_toast("Você acompanhou o evento até o fim.")
-	_show_screen("life")
+	if event_type not in ["beast_tide","rogue_bounty","tournament","faction_conflict","ancient_opening","sect_recruitment"]:
+		_show_screen("life")
 
 func _render_sect() -> void:
 	screen_title.text = "SEITA DO CÉU VELADO"
@@ -1708,6 +1710,8 @@ func _finish_battle() -> void:
 	var context: String = String(active_battle.get("context","hunt"))
 	if bool(active_battle.get("fled",false)):
 		active_battle.clear()
+		if context == "world_event":
+			pending_world_event_uid = ""
 		if context == "journey":
 			_journey_abort()
 		else:
@@ -1746,6 +1750,8 @@ func _handle_battle_defeat() -> void:
 	var player_realm: int = int(world_state.current_life.get("realm_index",0))
 	active_battle.clear()
 	_close_overlay()
+	if context == "world_event":
+		pending_world_event_uid = ""
 	if context == "spar":
 		_damage_meridians(0.03)
 		_show_toast("Você perdeu o duelo, mas saiu vivo e aprendeu com a derrota.")
@@ -1822,6 +1828,8 @@ func _reincarnate() -> void:
 	current_location = "spring_village"
 	selected_map_phase = 1
 	_initialize_life_runtime()
+	WorldEventSystemScript.ensure_events(world_state.active_dynamic_events,world_state.world_year,world_state.world_day,rng)
+	SectMissionSystemScript.refresh_board(world_state.current_life,world_state.world_year,world_state.world_day,rng)
 	_show_screen("life")
 	_show_toast("Anos passaram. Uma nova vida começou em um mundo que não esperou por você.")
 
