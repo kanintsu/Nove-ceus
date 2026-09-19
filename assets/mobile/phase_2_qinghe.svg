@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#35294c"/><stop offset=".35" stop-color="#8d5d64"/><stop offset=".7" stop-color="#c68d65"/><stop offset="1" stop-color="#182028"/></linearGradient>
+<radialGradient id="moon"><stop stop-color="#fff2c5"/><stop offset=".25" stop-color="#efc97f" stop-opacity=".75"/><stop offset="1" stop-color="#efc97f" stop-opacity="0"/></radialGradient>
+<linearGradient id="lantern" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffdf80"/><stop offset="1" stop-color="#c95332"/></linearGradient>
+</defs>
+<rect width="720" height="1280" fill="url(#sky)"/>
+<circle cx="570" cy="165" r="150" fill="url(#moon)"/>
+<g fill="#2d2736" opacity=".8"><path d="M0 555L130 450 240 520 335 410 460 530 585 425 720 540V690H0Z"/></g>
+<g fill="#4e2f33">
+<rect x="35" y="580" width="210" height="210"/><rect x="280" y="520" width="190" height="270"/><rect x="505" y="600" width="180" height="190"/>
+</g>
+<g fill="#2a2028">
+<path d="M20 580l120-70 120 70z"/><path d="M260 520l115-78 115 78z"/><path d="M485 600l110-65 110 65z"/>
+</g>
+<g fill="#c99a58"><rect x="45" y="612" width="190" height="11"/><rect x="292" y="556" width="166" height="11"/><rect x="516" y="632" width="158" height="11"/></g>
+<g fill="url(#lantern)">
+<circle cx="85" cy="690" r="10"/><circle cx="150" cy="710" r="10"/><circle cx="320" cy="645" r="11"/><circle cx="390" cy="690" r="11"/><circle cx="560" cy="705" r="10"/><circle cx="630" cy="675" r="10"/>
+</g>
+<path d="M0 900C150 845 300 875 430 820S610 745 720 770V980H0Z" fill="#21333b" opacity=".9"/>
+<path d="M0 915C180 860 330 900 460 845S630 775 720 800" fill="none" stroke="#8fb7bc" stroke-width="36" opacity=".8"/>
+<g fill="#e8c276" opacity=".55"><circle cx="110" cy="330" r="3"/><circle cx="230" cy="270" r="2"/><circle cx="380" cy="345" r="3"/><circle cx="470" cy="250" r="2"/><circle cx="640" cy="365" r="2"/></g>
+<rect y="930" width="720" height="350" fill="#0b1016" opacity=".58"/>
+</svg>
