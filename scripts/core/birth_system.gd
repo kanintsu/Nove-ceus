@@ -48,7 +48,7 @@ static func generate_birth(rng: RandomNumberGenerator) -> Dictionary:
 		"worldly_knowledge": 0.0,
 		"meridian_integrity": 1.0,
 		"soul_stability": 1.0,
-		"natural_lifespan": clampi(58 + physique / 5 + rng.randi_range(-7, 14), 48, 102),
+		"natural_lifespan": clampi(58 + int(float(physique) / 5.0) + rng.randi_range(-7, 14), 48, 102),
 		"alive": true,
 	}
 
