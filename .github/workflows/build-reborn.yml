@@ -44,7 +44,7 @@ jobs:
       - name: Export Android debug APK
         run: |
           mkdir -p reborn/builds
-          godot --headless --verbose --path reborn --export-debug "Android" reborn/builds/NoveCeus-Reborn-v0.1.apk
+          godot --headless --verbose --path reborn --export-debug "Android" builds/NoveCeus-Reborn-v0.1.apk
           test -s reborn/builds/NoveCeus-Reborn-v0.1.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
