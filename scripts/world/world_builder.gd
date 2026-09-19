@@ -9,11 +9,14 @@ const TrainingPostScript = preload("res://scripts/interactables/training_post.gd
 const StudyTableScript = preload("res://scripts/interactables/study_table.gd")
 const LoreSteleScript = preload("res://scripts/interactables/lore_stele.gd")
 const MortalNPCScript = preload("res://scripts/world/mortal_npc.gd")
+const RareEncounterNPCScript = preload("res://scripts/world/rare_encounter_npc.gd")
+const MortalLifeMarkerScript = preload("res://scripts/interactables/mortal_life_marker.gd")
 
 var rng := RandomNumberGenerator.new()
 var game: Node
 var material_cache: Dictionary = {}
 var beast: SpiritBeast
+var rare_encounter_npc: RareEncounterNPC
 
 const VILLAGE := Vector3(-48, 0, 32)
 const CITY := Vector3(48, 0, -28)
@@ -32,6 +35,7 @@ func setup(game_node: Node, seed_value: int, world_age_bonus: int = 0) -> void:
 	_build_mountain(world_age_bonus)
 	_build_ruins()
 	_build_boundaries()
+	refresh_rare_encounter()
 
 func get_spawn_position(origin_id: String) -> Vector3:
 	match origin_id:
@@ -97,6 +101,9 @@ func _build_village() -> void:
 	var training := TrainingPostScript.new()
 	training.position = VILLAGE + Vector3(8, 0, 11)
 	add_child(training)
+	var mortal_life := MortalLifeMarkerScript.new()
+	mortal_life.position = VILLAGE + Vector3(-8, 0, 11)
+	add_child(mortal_life)
 	_mortal_npc(VILLAGE + Vector3(-6, 0, 1), "Tia Mei", "curandeira", "A floresta alimenta quem a respeita. Os jovens que perseguem luzes estranhas raramente voltam.", Color(0.26, 0.34, 0.25))
 	_mortal_npc(VILLAGE + Vector3(5, 0, -1), "Bo Ren", "caçador", "Vi pegadas grandes demais perto da Montanha do Véu. Se você é mortal, aprenda primeiro quando correr.", Color(0.32, 0.24, 0.16))
 	_mortal_npc(VILLAGE + Vector3(1, 0, 10), "Lian", "ferreira", "Força não nasce do nada. Mesmo sem Qi, um corpo treinado decide quem volta vivo de uma estrada ruim.", Color(0.28, 0.20, 0.18))
@@ -163,6 +170,27 @@ func _build_ruins() -> void:
 	stele.position = RUINS + Vector3(0, 0, 0)
 	add_child(stele)
 	_location_marker("RUÍNAS DE LIANSHI", RUINS + Vector3(0, 4.3, 0))
+
+func refresh_rare_encounter() -> void:
+	if rare_encounter_npc != null and is_instance_valid(rare_encounter_npc):
+		rare_encounter_npc.queue_free()
+		rare_encounter_npc = null
+	if game == null or not game.has_method("get_current_rare_encounter"):
+		return
+	var profile: Dictionary = game.get_current_rare_encounter()
+	if profile.is_empty():
+		return
+	rare_encounter_npc = RareEncounterNPCScript.new()
+	var kind := String(profile.get("kind", ""))
+	match kind:
+		"abandoned_child":
+			rare_encounter_npc.position = VILLAGE + Vector3(-17, 0, 3)
+		"injured_youth":
+			rare_encounter_npc.position = Vector3(-20, 0, 22)
+		_:
+			rare_encounter_npc.position = CITY + Vector3(-18, 0, 15)
+	add_child(rare_encounter_npc)
+	rare_encounter_npc.setup(game, profile)
 
 func _build_boundaries() -> void:
 	for i in range(34):
