@@ -83,10 +83,10 @@ func _build()->void:
 
 func _build_side_actions()->void:
 	var left:=VBoxContainer.new(); left.position=Vector2(18,328); left.size=Vector2(128,332); left.add_theme_constant_override("separation",12); add_child(left)
-	for item in [["✦","EVENTOS","missions"],["門","SEITA","more"],["⌂","BASE","more"],["∞","LEGADO","more"]]:
+	for item in [["✦","EVENTOS","missions"],["門","SEITA","sect"],["⌂","BASE","base"],["∞","LEGADO","legacy"]]:
 		left.add_child(_side_button(item[0],item[1],item[2]))
 	var right:=VBoxContainer.new(); right.position=Vector2(574,328); right.size=Vector2(128,332); right.add_theme_constant_override("separation",12); add_child(right)
-	for item in [["天","REINOS","cultivation"],["山","MAPA","map"],["人","PESSOAS","people"],["袋","BOLSA","inventory"]]:
+	for item in [["天","REINOS","realms"],["山","MAPA","map"],["人","PESSOAS","people"],["袋","BOLSA","inventory"]]:
 		right.add_child(_side_button(item[0],item[1],item[2]))
 
 func _side_button(symbol:String,text_value:String,key:String)->Button:
