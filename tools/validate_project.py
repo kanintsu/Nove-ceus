@@ -60,7 +60,7 @@ for expected in ['_reincarnate','_awaken_qi','_end_life','_render_map','_render_
     if f'func {expected}' not in main: errors.append(f'mobile game missing {expected}')
 scene=(ROOT/'main.tscn').read_text('utf-8')
 if 'type="Node3D"' in scene: errors.append('main scene must not use Node3D in mobile rebuild')
-if 'scripts/mobile/mobile_game.gd' not in scene: errors.append('main scene is not wired to mobile_game.gd')
+if 'scripts/v08/v08_game.gd' not in scene: errors.append('main scene is not wired to the V0.8 game controller')
 project=(ROOT/'project.godot').read_text('utf-8')
 if 'window/size/viewport_width=720' not in project or 'window/size/viewport_height=1280' not in project:
     errors.append('mobile rebuild must use 720x1280 portrait viewport')
