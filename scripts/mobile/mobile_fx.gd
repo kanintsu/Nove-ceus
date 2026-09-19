@@ -11,7 +11,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	rng.seed = 872341
-	reduced_motion = OS.is_low_processor_usage_mode_enabled()
+	reduced_motion = false
 	_reset_particles()
 
 func set_phase(value: int) -> void:
