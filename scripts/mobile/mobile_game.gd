@@ -684,7 +684,7 @@ func _perform_location_action(action: String) -> void:
 		"tribulation": _tribulation()
 		"ascend": _ascend()
 		_:
-			_explore()
+			_start_journey()
 
 func _action_definition(action: String) -> Array:
 	var defs := {
