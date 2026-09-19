@@ -1366,6 +1366,203 @@ func _accept_encounter() -> void:
 		audio.play_sfx("rare")
 	_show_screen("people")
 
+func _render_world_events() -> void:
+	WorldEventSystemScript.ensure_events(world_state.active_dynamic_events,world_state.world_year,world_state.world_day,rng)
+	var active: Array[Dictionary] = WorldEventSystemScript.active_events(world_state.active_dynamic_events)
+	var card := _add_card("Eventos do Mundo")
+	if active.is_empty():
+		card.add_child(_body_label("Nenhum acontecimento importante está ativo neste momento."))
+		return
+	for event in active:
+		var key: String = String(event.get("location","spring_village"))
+		var location_name := key
+		if GameContentScript.LOCATIONS.has(key):
+			location_name = String(GameContentScript.LOCATIONS[key]["name"])
+		var remaining: int = WorldEventSystemScript.remaining_days(event,world_state.world_year,world_state.world_day)
+		var recommended: int = int(event.get("recommended_realm",0))
+		var current_realm: int = int(world_state.current_life.get("realm_index",0))
+		var warning := ""
+		if current_realm < recommended:
+			warning = "\n⚠ Recomendado: %s" % REALMS[clampi(recommended,0,REALMS.size()-1)]
+		card.add_child(_body_label("%s · %d dias restantes\n%s\nLocal: %s%s" % [
+			String(event.get("title","Evento")),remaining,String(event.get("text","")),location_name,warning
+		]))
+		var go := Button.new()
+		go.text = "ACOMPANHAR EVENTO"
+		go.custom_minimum_size = Vector2(0,50)
+		go.pressed.connect(_world_event_go.bind(String(event.get("uid",""))))
+		card.add_child(go)
+
+func _world_event_go(uid:String) -> void:
+	var event: Dictionary = WorldEventSystemScript.find_event(world_state.active_dynamic_events,uid)
+	if event.is_empty():
+		_show_toast("Esse evento já terminou.")
+		return
+	var target := String(event.get("location","spring_village"))
+	if current_location != target:
+		var days := _travel_days(current_location,target)
+		_advance_days(days)
+		if life_over:
+			return
+		current_location = target
+		selected_map_phase = int(GameContentScript.LOCATIONS[target]["phase"])
+		_update_phase_presentation()
+		audio.play_sfx("travel")
+	_world_event_resolve(uid)
+
+func _world_event_resolve(uid:String) -> void:
+	var event: Dictionary = WorldEventSystemScript.find_event(world_state.active_dynamic_events,uid)
+	if event.is_empty():
+		return
+	var event_type := String(event.get("type",""))
+	match event_type:
+		"beast_tide","rogue_bounty","tournament","faction_conflict":
+			pending_world_event_uid = uid
+			_start_tactical_combat("world_event")
+		"ancient_opening":
+			pending_world_event_uid = uid
+			_start_journey()
+		"sect_recruitment":
+			WorldEventSystemScript.resolve(world_state.active_dynamic_events,uid)
+			_show_screen("sect")
+		"spirit_rain":
+			_advance_days(3)
+			if bool(world_state.current_life.get("qi_awakened",false)):
+				world_state.current_life["cultivation_progress"] = minf(100.0,float(world_state.current_life.get("cultivation_progress",0.0))+12.0)
+				world_state.current_life["dao_insight"] = float(world_state.current_life.get("dao_insight",0.0))+2.0
+				_show_toast("Você absorveu a Chuva Espiritual: +12% cultivo e +2 Dao.")
+			else:
+				_show_toast("Sem um caminho aberto, você apenas sente que o ar mudou.")
+			WorldEventSystemScript.resolve(world_state.active_dynamic_events,uid)
+		"herb_bloom":
+			_add_item({"name":"Erva de Florescimento","qty":3,"kind":"Erva","rarity":"Raro","desc":"Colhida durante um florescimento que durou poucos dias."})
+			_advance_days(2)
+			WorldEventSystemScript.resolve(world_state.active_dynamic_events,uid)
+			_show_toast("Você aproveitou o florescimento antes que outros chegassem.")
+		"caravan","merchant_fair":
+			var gain := 25+rng.randi_range(0,35)
+			world_state.current_life["silver"] = int(world_state.current_life.get("silver",0))+gain
+			_advance_days(2)
+			WorldEventSystemScript.resolve(world_state.active_dynamic_events,uid)
+			_show_toast("Negócios e contatos renderam %d de prata." % gain)
+		"plague":
+			var knowledge := float(world_state.current_life.get("worldly_knowledge",0.0))
+			_advance_days(7)
+			if knowledge >= 35.0:
+				world_state.current_life["world_reputation"] = int(world_state.current_life.get("world_reputation",0))+4
+				_show_toast("Seu conhecimento ajudou a salvar vidas. Reputação +4.")
+			else:
+				_show_toast("Você ajudou como pôde, mas faltou conhecimento para mudar o curso da doença.")
+			WorldEventSystemScript.resolve(world_state.active_dynamic_events,uid)
+		"flood":
+			_advance_days(6)
+			world_state.current_life["body_training"] = minf(100.0,float(world_state.current_life.get("body_training",0.0))+2.0)
+			world_state.current_life["world_reputation"] = int(world_state.current_life.get("world_reputation",0))+2
+			WorldEventSystemScript.resolve(world_state.active_dynamic_events,uid)
+			_show_toast("Você trabalhou na enchente. Corpo +2 e reputação +2.")
+		"spirit_vein":
+			world_state.current_life["spirit_stones"] = int(world_state.current_life.get("spirit_stones",0))+rng.randi_range(2,5)
+			_advance_days(4)
+			WorldEventSystemScript.resolve(world_state.active_dynamic_events,uid)
+			_show_toast("Você obteve algumas pedras espirituais antes da região ser disputada.")
+		"eclipse","heaven_omen":
+			_advance_days(4)
+			world_state.current_life["dao_insight"] = float(world_state.current_life.get("dao_insight",0.0))+4.0
+			if rng.randf() < 0.18:
+				_damage_meridians(0.04)
+			WorldEventSystemScript.resolve(world_state.active_dynamic_events,uid)
+			_show_toast("O fenômeno deixou +4 Dao, mas observar o Céu nunca é completamente seguro.")
+		_:
+			WorldEventSystemScript.resolve(world_state.active_dynamic_events,uid)
+			_show_toast("Você acompanhou o evento até o fim.")
+	_show_screen("life")
+
+func _render_sect() -> void:
+	screen_title.text = "SEITA DO CÉU VELADO"
+	var life := world_state.current_life
+	SectMissionSystemScript.ensure_state(life)
+	SectMissionSystemScript.refresh_board(life,world_state.world_year,world_state.world_day,rng)
+	var status := String(life.get("sect_status","outsider"))
+	var status_card := _add_card("Sua posição")
+	status_card.add_child(_body_label("%s\nMérito: %d · Reputação da seita: %d\n\nA seita aceita servos mortais, discípulos e especialistas. Qi muda sua posição, mas não é necessário para existir aqui." % [
+		SectMissionSystemScript.status_label(status),int(life.get("sect_merit",0)),int(life.get("sect_reputation",0))
+	]))
+	var advance := Button.new()
+	advance.text = "PEDIR ENTRADA / PROMOÇÃO"
+	advance.custom_minimum_size = Vector2(0,56)
+	advance.pressed.connect(_sect_join_or_upgrade)
+	status_card.add_child(advance)
+
+	var active_card := _add_card("Missões aceitas")
+	var active_missions: Array = life.get("sect_missions",[])
+	var active_shown := 0
+	var now := world_state.world_year*360+world_state.world_day
+	for mission in active_missions:
+		if bool(mission.get("claimed",false)):
+			continue
+		active_shown += 1
+		var failed := bool(mission.get("failed",false))
+		var completed := bool(mission.get("completed",false))
+		var remaining := maxi(0,int(mission.get("expires",now))-now)
+		active_card.add_child(_body_label("%s\n%s\nProgresso %d/%d · %d dias restantes%s" % [
+			String(mission.get("title","Missão")),String(mission.get("text","")),
+			int(mission.get("progress",0)),int(mission.get("goal",1)),remaining,
+			" · FALHOU" if failed else (" · CONCLUÍDA" if completed else "")
+		]))
+		if completed and not failed:
+			var claim := Button.new()
+			claim.text = "RECEBER MÉRITO E RECOMPENSA"
+			claim.custom_minimum_size = Vector2(0,48)
+			claim.pressed.connect(_claim_sect_mission.bind(String(mission.get("uid",""))))
+			active_card.add_child(claim)
+	if active_shown == 0:
+		active_card.add_child(_body_label("Você ainda não aceitou nenhuma missão."))
+
+	var board := _add_card("Quadro de missões")
+	var available: Array = life.get("sect_available",[])
+	for mission in available:
+		if bool(mission.get("accepted",false)):
+			continue
+		var rec := int(mission.get("realm",0))
+		var current := int(life.get("realm_index",0))
+		var warning := ""
+		if current < rec:
+			warning = "\n⚠ Acima do seu reino recomendado: %s" % REALMS[clampi(rec,0,REALMS.size()-1)]
+		board.add_child(_body_label("%s\n%s\nObjetivo %d× %s · Mérito %d · %d prata%s" % [
+			String(mission.get("title","Missão")),String(mission.get("text","")),
+			int(mission.get("goal",1)),String(mission.get("action","ação")),
+			int(mission.get("merit",0)),int(mission.get("silver",0)),warning
+		]))
+		var accept := Button.new()
+		accept.text = "ACEITAR MESMO ASSIM" if current < rec else "ACEITAR MISSÃO"
+		accept.custom_minimum_size = Vector2(0,50)
+		accept.pressed.connect(_accept_sect_mission.bind(String(mission.get("uid",""))))
+		board.add_child(accept)
+
+func _sect_join_or_upgrade() -> void:
+	var result := SectMissionSystemScript.join_or_upgrade(world_state.current_life)
+	_show_toast(result)
+	audio.play_sfx("rare")
+	_show_screen("sect")
+
+func _accept_sect_mission(uid:String) -> void:
+	var result: Dictionary = SectMissionSystemScript.accept(world_state.current_life,uid)
+	_show_toast(String(result.get("text","Não foi possível aceitar.")))
+	if bool(result.get("ok",false)):
+		audio.play_sfx("rare")
+	_show_screen("sect")
+
+func _claim_sect_mission(uid:String) -> void:
+	var reward: Dictionary = SectMissionSystemScript.claim(world_state.current_life,uid)
+	if reward.is_empty():
+		_show_toast("Esta missão ainda não pode ser recebida.")
+		return
+	_show_toast("%s: +%d mérito e +%d prata." % [
+		String(reward.get("title","Missão")),int(reward.get("merit",0)),int(reward.get("silver",0))
+	])
+	audio.play_sfx("item")
+	_show_screen("sect")
+
 func _render_contract_board() -> void:
 	var life := world_state.current_life
 	ContractSystemScript.ensure_contracts(life,_current_phase(),world_state.world_year,world_state.world_day,rng)
