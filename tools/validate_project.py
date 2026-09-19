@@ -84,16 +84,6 @@ for expected in ['play_phase_theme','play_sfx','THEME_NOTES']:
         errors.append(f'mobile audio missing {expected}')
 
 
-print(f'Validated {sum(1 for _ in ROOT.rglob("*.gd"))} GDScript files and {sum(1 for p in ROOT.rglob("*") if p.is_file())} total files.')
-if warnings:
-    print('WARNINGS:')
-    for w in warnings: print(' -',w)
-if errors:
-    print('ERRORS:')
-    for e in errors: print(' -',e)
-    sys.exit(1)
-print('Static project validation: PASS')
-
 gameplay=(ROOT/'scripts/mobile/mobile_game.gd').read_text('utf-8')
 for expected in ['_start_tactical_combat','_render_battle_overlay','_start_journey','_render_journey_overlay','_render_contract_board','_person_action','_cultivate_mode']:
     if f'func {expected}' not in gameplay:
@@ -109,3 +99,13 @@ if 'func _render_world_events' not in gameplay or 'func _render_sect' not in gam
     errors.append('V0.6 world events or sect screen missing')
 if 'func _is_phase_unlocked(_phase:int) -> bool:\n\treturn true' not in gameplay:
     errors.append('V0.6 must keep macro phases open instead of hard realm locks')
+
+print(f'Validated {sum(1 for _ in ROOT.rglob("*.gd"))} GDScript files and {sum(1 for p in ROOT.rglob("*") if p.is_file())} total files.')
+if warnings:
+    print('WARNINGS:')
+    for w in warnings: print(' -',w)
+if errors:
+    print('ERRORS:')
+    for e in errors: print(' -',e)
+    sys.exit(1)
+print('Static project validation: PASS')
