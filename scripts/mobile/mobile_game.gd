@@ -2,6 +2,7 @@ extends Control
 
 const WorldStateScript = preload("res://scripts/core/world_state.gd")
 const BirthSystemScript = preload("res://scripts/core/birth_system.gd")
+const NotablePersonSystemScript = preload("res://scripts/core/notable_person_system.gd")
 
 const REALMS: Array[String] = [
 	"Mortal",
@@ -74,6 +75,7 @@ var screen_title: Label
 
 var nav_buttons: Dictionary = {}
 var last_year_simulated := 137
+var life_over := false
 
 func _ready() -> void:
 	world_state = WorldStateScript.new()
@@ -449,6 +451,8 @@ func _live_season() -> void:
 	life["worldly_knowledge"] = minf(float(life.get("worldly_knowledge",0.0))+knowledge_gain,100.0)
 	life["body_training"] = minf(float(life.get("body_training",0.0))+training_gain,100.0)
 	_advance_days(90)
+	if life_over:
+		return
 	_show_toast("Uma estação passou. Você viveu como alguém deste mundo, não como um marcador esperando por Qi.")
 	_show_screen("life")
 
@@ -456,6 +460,8 @@ func _train_body() -> void:
 	var life := world_state.current_life
 	life["body_training"] = minf(float(life.get("body_training",0.0))+3.5+float(life.get("physique",50))/50.0,100.0)
 	_advance_days(1)
+	if life_over:
+		return
 	_show_toast("Um dia de treino fortaleceu o corpo.")
 	_show_screen("life")
 
@@ -463,6 +469,8 @@ func _study() -> void:
 	var life := world_state.current_life
 	life["worldly_knowledge"] = minf(float(life.get("worldly_knowledge",0.0))+4.0+float(life.get("intelligence",50))/35.0,100.0)
 	_advance_days(7)
+	if life_over:
+		return
 	_show_toast("Você estudou medicina, números, história e técnicas mortais por sete dias.")
 	_show_screen("life")
 
@@ -658,7 +666,7 @@ func _advance_days(days: int) -> void:
 	world_state.advance_days(days)
 	var years_passed := world_state.world_year - before_year
 	if years_passed > 0:
-		var person_events: Array[String] = NotablePersonSystem.advance_people(world_state.notable_people,years_passed,world_state.rng,world_state.world_year)
+		var person_events: Array[String] = NotablePersonSystemScript.advance_people(world_state.notable_people,years_passed,world_state.rng,world_state.world_year)
 		for e in person_events:
 			world_state.record_world_event(e)
 	_check_natural_death()
@@ -676,6 +684,9 @@ func _check_natural_death() -> void:
 		_end_life("velhice")
 
 func _end_life(cause: String) -> void:
+	if life_over:
+		return
+	life_over = true
 	var summary := world_state.end_life(cause,world_state.current_age())
 	_show_event("ESTA VIDA TERMINOU","Vida %d · %s\nIdade: %d anos\nCausa: %s\n\nO mundo continuará sem você." % [
 		int(summary.get("incarnation",0)),String(summary.get("origin","")),int(summary.get("age",0)),cause
@@ -686,6 +697,7 @@ func _end_life(cause: String) -> void:
 func _reincarnate() -> void:
 	_close_overlay()
 	world_state.reincarnate()
+	life_over = false
 	current_location = "village"
 	_initialize_life_runtime()
 	_show_screen("life")
