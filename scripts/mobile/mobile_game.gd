@@ -19,6 +19,8 @@ const NavTileScript = preload("res://scripts/mobile/nav_tile.gd")
 const EventCardScript = preload("res://scripts/mobile/event_card.gd")
 const OrnateSeparatorScript = preload("res://scripts/mobile/ornate_separator.gd")
 const PortraitMedallionScript = preload("res://scripts/mobile/portrait_medallion.gd")
+const CultivationDiagramScript = preload("res://scripts/mobile/cultivation_diagram.gd")
+const InventoryTileScript = preload("res://scripts/mobile/inventory_tile.gd")
 
 const REALMS: Array[String] = [
 	"Mortal",
@@ -482,6 +484,9 @@ func _life_status_text() -> String:
 
 func _render_map() -> void:
 	screen_title.text = "MAPA DOS CINCO CAMINHOS"
+	var map_sep := OrnateSeparatorScript.new()
+	map_sep.setup("REGIÕES E ROTAS",_phase_accent())
+	content.add_child(map_sep)
 
 	var phase_tabs := HBoxContainer.new()
 	phase_tabs.add_theme_constant_override("separation",6)
@@ -564,21 +569,28 @@ func _select_map_phase(value:int) -> void:
 	var keys: Array[String] = GameContentScript.phase_locations(selected_map_phase)
 	map_selected_location = current_location if keys.has(current_location) else (keys[0] if not keys.is_empty() else "")
 	_show_screen("map")
-	background.texture = load(String(PHASE_BACKGROUNDS[selected_map_phase]))
+	if backdrop != null and backdrop.has_method("set_phase"):
+		backdrop.set_phase(selected_map_phase)
 	if fx != null:
 		fx.set_phase(selected_map_phase)
 
 func _render_cultivation() -> void:
 	screen_title.text = "CULTIVO · CORPO · DAO"
+	var cult_sep := OrnateSeparatorScript.new()
+	cult_sep.setup("DANTIAN E MERIDIANOS",_phase_accent())
+	content.add_child(cult_sep)
 	var life := world_state.current_life
 	var realm_index := int(life.get("realm_index",0))
 
-	var art := TextureRect.new()
-	art.texture = load("res://assets/mobile/bg_cultivation.svg")
-	art.custom_minimum_size = Vector2(668,285)
-	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	content.add_child(art)
+	var diagram := CultivationDiagramScript.new()
+	diagram.setup(
+		realm_index,
+		float(life.get("cultivation_progress",0.0)),
+		float(life.get("meridian_integrity",1.0)),
+		float(life.get("dao_insight",0.0)),
+		_phase_accent()
+	)
+	content.add_child(diagram)
 
 	var state_card := _add_card("Estado Espiritual")
 	var diagnosis := "O corpo ainda não revelou um caminho espiritual."
@@ -619,6 +631,9 @@ func _render_cultivation() -> void:
 
 func _render_people() -> void:
 	screen_title.text = "PESSOAS · FAMÍLIA · DESTINOS"
+	var people_sep := OrnateSeparatorScript.new()
+	people_sep.setup("VÍNCULOS QUE SOBREVIVEM AO TEMPO",_phase_accent())
+	content.add_child(people_sep)
 
 	if world_state.current_rare_encounter.size() > 0:
 		var p: Dictionary = world_state.current_rare_encounter
@@ -670,6 +685,9 @@ func _render_people() -> void:
 
 func _render_inventory() -> void:
 	screen_title.text = "BOLSA · EQUIPAMENTO · TESOUROS"
+	var bag_sep := OrnateSeparatorScript.new()
+	bag_sep.setup("PERTENCES DESTA VIDA",_phase_accent())
+	content.add_child(bag_sep)
 	var life := world_state.current_life
 
 	var equip := _add_card("Equipamento desta Vida")
@@ -702,21 +720,17 @@ func _render_inventory() -> void:
 	grid.add_theme_constant_override("h_separation",8)
 	grid.add_theme_constant_override("v_separation",8)
 	for item in visible_items:
-		var b := Button.new()
-		b.text = "%s\n%s ×%d\n[%s]" % [
-			_item_symbol(String(item.get("kind","Objeto"))),
-			String(item.get("name","Item")),int(item.get("qty",1)),
-			String(item.get("rarity","Comum"))
-		]
-		b.custom_minimum_size = Vector2(214,132)
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.add_theme_font_size_override("font_size",13)
-		b.pressed.connect(_inspect_item.bind(item))
-		grid.add_child(b)
+		var tile := InventoryTileScript.new()
+		tile.setup(item)
+		tile.inspect_requested.connect(_inspect_item)
+		grid.add_child(tile)
 	content.add_child(grid)
 
 func _render_chronicle() -> void:
 	screen_title.text = "CRÔNICA DOS NOVE CÉUS"
+	var chron_sep := OrnateSeparatorScript.new()
+	chron_sep.setup("MEMÓRIA DAS VIDAS",_phase_accent())
+	content.add_child(chron_sep)
 	var phase_card := _add_card("Fases Conhecidas")
 	var realm_index := int(world_state.current_life.get("realm_index",0))
 	var unlocked := GameContentScript.unlocked_phase_for_realm(realm_index)
