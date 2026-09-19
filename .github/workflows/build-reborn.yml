@@ -1,5 +1,9 @@
 name: Build Nove Ceus Reborn
 
+concurrency:
+  group: reborn-build-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [ reborn-from-zero ]
