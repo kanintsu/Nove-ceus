@@ -84,6 +84,10 @@ func _show_screen(key:String)->void:
 			var view:=Cycle.new();view.setup(state);screen_host.add_child(view)
 		"legacy":
 			var view:=Legacy.new();view.setup(state);view.reincarnate.connect(_reincarnate);screen_host.add_child(view)
+		"base":
+			_show_more_mode("base");return
+		"realms":
+			_show_more_mode("realms");return
 		"more":
 			var view:=More.new();view.setup(state);view.navigate.connect(_more_navigate);view.base_action.connect(_world_action);screen_host.add_child(view)
 		_:
