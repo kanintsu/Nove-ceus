@@ -7,14 +7,20 @@ on:
     branches: [ main ]
 
 jobs:
-  validate:
+  static:
     runs-on: ubuntu-latest
-    container:
-      image: barichello/godot-ci:4.7.2
     steps:
       - uses: actions/checkout@v4
       - name: Static project checks
         run: python3 tools/validate_project.py
+
+  godot:
+    needs: static
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.7.2
+    steps:
+      - uses: actions/checkout@v4
       - name: Import project and parse scripts
         run: godot --headless --editor --path . --quit
       - name: Boot main scene briefly
