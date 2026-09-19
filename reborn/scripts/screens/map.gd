@@ -41,5 +41,5 @@ func _notification(what:int)->void:
 		draw_rect(Rect2(p+Vector2(-18,-28),Vector2(36,28)),Color("#10242a"),true)
 		draw_colored_polygon(PackedVector2Array([p+Vector2(-35,-28),p+Vector2(0,-48),p+Vector2(35,-28)]),Color(col,0.40))
 		if i<4:draw_line(p,positions[i+1],Color("#d6c27c",0.23),3)
-	var c:=positions[4]
+	var c:Vector2=positions[4]
 	for r in [80.0,105.0,135.0]:draw_arc(c,r,0,TAU,64,Color("#ead17c",0.10),1)
