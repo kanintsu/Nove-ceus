@@ -107,6 +107,7 @@ func _initialize_life_runtime() -> void:
 
 func _build_shell() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	theme = _create_mobile_theme()
 	background = TextureRect.new()
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -799,6 +800,41 @@ func _label(text_value: String,size_value: int,color_value: Color) -> Label:
 	l.add_theme_font_size_override("font_size",size_value)
 	l.modulate = color_value
 	return l
+
+func _create_mobile_theme() -> Theme:
+	var t := Theme.new()
+	var normal := _button_style(Color(0.075,0.11,0.125,0.94),Color(0.48,0.53,0.46,0.52))
+	var hover := _button_style(Color(0.105,0.145,0.155,0.98),Color(0.72,0.61,0.37,0.78))
+	var pressed := _button_style(Color(0.16,0.18,0.16,0.98),Color(0.88,0.72,0.34,0.95))
+	var disabled := _button_style(Color(0.055,0.065,0.07,0.78),Color(0.24,0.28,0.28,0.42))
+	t.set_stylebox("normal","Button",normal)
+	t.set_stylebox("hover","Button",hover)
+	t.set_stylebox("pressed","Button",pressed)
+	t.set_stylebox("disabled","Button",disabled)
+	t.set_color("font_color","Button",Color(0.92,0.92,0.86))
+	t.set_color("font_hover_color","Button",Color(1.0,0.93,0.72))
+	t.set_color("font_pressed_color","Button",Color(1.0,0.86,0.46))
+	t.set_color("font_disabled_color","Button",Color(0.48,0.52,0.51))
+	t.set_font_size("font_size","Button",15)
+	return t
+
+func _button_style(bg: Color,border: Color) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = bg
+	s.corner_radius_top_left = 14
+	s.corner_radius_top_right = 14
+	s.corner_radius_bottom_left = 14
+	s.corner_radius_bottom_right = 14
+	s.border_width_left = 1
+	s.border_width_right = 1
+	s.border_width_top = 1
+	s.border_width_bottom = 1
+	s.border_color = border
+	s.content_margin_left = 10.0
+	s.content_margin_right = 10.0
+	s.content_margin_top = 10.0
+	s.content_margin_bottom = 10.0
+	return s
 
 func _panel_style(color_value: Color,radius: int) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
