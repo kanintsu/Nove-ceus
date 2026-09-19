@@ -32,6 +32,8 @@ const ENEMIES: Dictionary = {
 static func create_battle(life: Dictionary, phase: int, rng: RandomNumberGenerator) -> Dictionary:
 	var pool: Array = ENEMIES.get(clampi(phase,1,5),ENEMIES[1])
 	var enemy_template: Dictionary = pool[rng.randi_range(0,pool.size()-1)]
+	var enemy: Dictionary = enemy_template.duplicate(true)
+	enemy["max_hp"] = int(enemy["hp"])
 	var body: float = float(life.get("body_training",0.0))
 	var realm: int = int(life.get("realm_index",0))
 	var meridians: float = float(life.get("meridian_integrity",1.0))
@@ -40,7 +42,7 @@ static func create_battle(life: Dictionary, phase: int, rng: RandomNumberGenerat
 	if bool(life.get("qi_awakened",false)):
 		max_qi = 3 + int(realm/3.0)
 	return {
-		"enemy":enemy_template.duplicate(true),
+		"enemy":enemy,
 		"player_hp":max_hp,
 		"player_max_hp":max_hp,
 		"player_guard":0,
