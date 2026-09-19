@@ -14,6 +14,13 @@ const RelationshipSystemScript = preload("res://scripts/mobile/relationship_syst
 const CultivationSessionScript = preload("res://scripts/mobile/cultivation_session.gd")
 const WorldEventSystemScript = preload("res://scripts/mobile/world_event_system.gd")
 const SectMissionSystemScript = preload("res://scripts/mobile/sect_mission_system.gd")
+const CelestialBackdropScript = preload("res://scripts/mobile/celestial_backdrop.gd")
+const NavTileScript = preload("res://scripts/mobile/nav_tile.gd")
+const EventCardScript = preload("res://scripts/mobile/event_card.gd")
+const OrnateSeparatorScript = preload("res://scripts/mobile/ornate_separator.gd")
+const PortraitMedallionScript = preload("res://scripts/mobile/portrait_medallion.gd")
+const CultivationDiagramScript = preload("res://scripts/mobile/cultivation_diagram.gd")
+const InventoryTileScript = preload("res://scripts/mobile/inventory_tile.gd")
 
 const REALMS: Array[String] = [
 	"Mortal",
@@ -119,8 +126,7 @@ var pending_world_event_uid := ""
 var life_over := false
 var music_enabled := true
 
-var background: TextureRect
-var background_tint: ColorRect
+var backdrop: Control
 var phase_label: Label
 var header_title: Label
 var header_meta: Label
@@ -185,87 +191,139 @@ func _build_shell() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	theme = _create_mobile_theme()
 
-	background = TextureRect.new()
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(background)
-
-	background_tint = ColorRect.new()
-	background_tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background_tint.color = Color(0.02,0.03,0.04,0.14)
-	background_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(background_tint)
+	backdrop = CelestialBackdropScript.new()
+	add_child(backdrop)
 
 	add_child(fx)
-	move_child(fx,2)
+	move_child(fx,1)
 
-	var top_panel := PanelContainer.new()
-	top_panel.position = Vector2(14,16)
-	top_panel.size = Vector2(692,142)
-	top_panel.add_theme_stylebox_override("panel",_panel_style(Color(0.025,0.045,0.055,0.92),20,_phase_accent()))
-	add_child(top_panel)
+	var veil := ColorRect.new()
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	veil.color = Color(0.015,0.028,0.032,0.10)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(veil)
+	move_child(veil,2)
+
+	# Life header: real UI hierarchy, not a black rectangle over an image.
+	var top_frame := MobileCard.new()
+	top_frame.position = Vector2(12,12)
+	top_frame.size = Vector2(696,170)
+	top_frame.custom_minimum_size = Vector2(696,170)
+	top_frame.panel_color = Color("#10272d")
+	top_frame.border_color = Color("#d1b76b")
+	top_frame.inner_glow = Color("#5e9c96")
+	add_child(top_frame)
 
 	var top_margin := MarginContainer.new()
-	for side in ["margin_left","margin_right","margin_top","margin_bottom"]:
-		top_margin.add_theme_constant_override(side,14)
-	top_panel.add_child(top_margin)
+	top_margin.add_theme_constant_override("margin_left",16)
+	top_margin.add_theme_constant_override("margin_right",14)
+	top_margin.add_theme_constant_override("margin_top",15)
+	top_margin.add_theme_constant_override("margin_bottom",14)
+	top_frame.add_child(top_margin)
 
-	var top_v := VBoxContainer.new()
-	top_v.add_theme_constant_override("separation",2)
-	top_margin.add_child(top_v)
+	var header_row := HBoxContainer.new()
+	header_row.add_theme_constant_override("separation",14)
+	top_margin.add_child(header_row)
 
-	var row := HBoxContainer.new()
-	top_v.add_child(row)
-	phase_label = _label("",14,Color(0.96,0.82,0.52))
-	phase_label.custom_minimum_size = Vector2(500,24)
-	row.add_child(phase_label)
+	var portrait := PortraitMedallionScript.new()
+	portrait.setup(_current_phase(),int(world_state.current_life.get("realm_index",0)),_phase_accent())
+	header_row.add_child(portrait)
+
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.add_theme_constant_override("separation",3)
+	header_row.add_child(info)
+
+	phase_label = _label("",13,Color("#d9c27d"))
+	info.add_child(phase_label)
+
+	header_title = _label("",24,Color("#f2e8c9"))
+	info.add_child(header_title)
+
+	header_meta = _label("",14,Color("#d3dfd8"))
+	info.add_child(header_meta)
+
+	header_resource = _label("",13,Color("#9fd1c5"))
+	header_resource.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.add_child(header_resource)
+
+	var controls := VBoxContainer.new()
+	controls.custom_minimum_size = Vector2(54,0)
+	header_row.add_child(controls)
 	music_button = Button.new()
 	music_button.text = "♫"
-	music_button.custom_minimum_size = Vector2(52,40)
+	music_button.custom_minimum_size = Vector2(52,46)
 	music_button.focus_mode = Control.FOCUS_NONE
 	music_button.pressed.connect(_toggle_music)
-	row.add_child(music_button)
+	controls.add_child(music_button)
+	var seal := Label.new()
+	seal.text = "九\n天"
+	seal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	seal.add_theme_font_size_override("font_size",14)
+	seal.modulate = Color("#d5bd72")
+	controls.add_child(seal)
 
-	header_title = _label("",23,Color(0.98,0.92,0.75))
-	top_v.add_child(header_title)
-	header_meta = _label("",14,Color(0.84,0.88,0.87))
-	top_v.add_child(header_meta)
-	header_resource = _label("",13,Color(0.67,0.83,0.78))
-	top_v.add_child(header_resource)
-
-	screen_title = _label("",27,Color(0.99,0.95,0.84))
-	screen_title.position = Vector2(24,172)
-	screen_title.size = Vector2(672,42)
+	var title_band := PanelContainer.new()
+	title_band.position = Vector2(32,191)
+	title_band.size = Vector2(656,54)
+	var title_style := StyleBoxFlat.new()
+	title_style.bg_color = Color("#122a30")
+	title_style.bg_color.a = 0.84
+	title_style.corner_radius_top_left = 24
+	title_style.corner_radius_top_right = 24
+	title_style.corner_radius_bottom_left = 24
+	title_style.corner_radius_bottom_right = 24
+	title_style.border_width_bottom = 1
+	title_style.border_color = Color(_phase_accent(),0.48)
+	title_band.add_theme_stylebox_override("panel",title_style)
+	add_child(title_band)
+	screen_title = _label("",25,Color("#f3e5b9"))
 	screen_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(screen_title)
+	screen_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_band.add_child(screen_title)
 
 	content_scroll = ScrollContainer.new()
-	content_scroll.position = Vector2(18,222)
-	content_scroll.size = Vector2(684,866)
+	content_scroll.position = Vector2(18,258)
+	content_scroll.size = Vector2(684,834)
 	content_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content_scroll.add_theme_constant_override("scrollbar_margin_left",6)
 	add_child(content_scroll)
 
 	content = VBoxContainer.new()
 	content.custom_minimum_size = Vector2(668,0)
-	content.add_theme_constant_override("separation",13)
+	content.add_theme_constant_override("separation",14)
 	content_scroll.add_child(content)
 
-	toast = _label("",15,Color.WHITE)
+	toast = _label("",15,Color("#f4ead1"))
 	toast.position = Vector2(42,1018)
 	toast.size = Vector2(636,66)
 	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	toast.add_theme_stylebox_override("normal",_panel_style(Color(0.02,0.035,0.045,0.95),15,_phase_accent()))
+	toast.add_theme_stylebox_override("normal",_panel_style(Color("#10272d"),16,Color(_phase_accent(),0.8)))
 	toast.visible = false
 	toast.z_index = 40
 	add_child(toast)
 
+	# Dedicated symbolic navigation; no generic giant rectangular buttons.
+	var nav_back := PanelContainer.new()
+	nav_back.position = Vector2(6,1108)
+	nav_back.size = Vector2(708,158)
+	var nav_style := StyleBoxFlat.new()
+	nav_style.bg_color = Color("#09191e")
+	nav_style.bg_color.a = 0.96
+	nav_style.corner_radius_top_left = 26
+	nav_style.corner_radius_top_right = 26
+	nav_style.corner_radius_bottom_left = 12
+	nav_style.corner_radius_bottom_right = 12
+	nav_style.border_width_top = 1
+	nav_style.border_color = Color(_phase_accent(),0.46)
+	nav_back.add_theme_stylebox_override("panel",nav_style)
+	add_child(nav_back)
+
 	bottom_nav = HBoxContainer.new()
-	bottom_nav.position = Vector2(10,1102)
-	bottom_nav.size = Vector2(700,164)
+	bottom_nav.position = Vector2(12,1118)
+	bottom_nav.size = Vector2(696,140)
 	bottom_nav.add_theme_constant_override("separation",5)
 	add_child(bottom_nav)
 
@@ -274,18 +332,15 @@ func _build_shell() -> void:
 		["people","PESSOAS"],["inventory","BOLSA"],["chronicle","CRÔNICA"]
 	]:
 		var key: String = data[0]
-		var btn := Button.new()
-		btn.text = data[1]
-		btn.custom_minimum_size = Vector2(112,126)
-		btn.add_theme_font_size_override("font_size",12)
-		btn.focus_mode = Control.FOCUS_NONE
+		var btn := NavTileScript.new()
+		btn.setup(key,String(data[1]),_phase_accent())
 		btn.pressed.connect(_nav_pressed.bind(key))
 		bottom_nav.add_child(btn)
 		nav_buttons[key] = btn
 
 	overlay = ColorRect.new()
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0.008,0.012,0.018,0.91)
+	overlay.color = Color(0.005,0.012,0.016,0.88)
 	overlay.z_index = 100
 	overlay.visible = false
 	add_child(overlay)
@@ -293,14 +348,18 @@ func _build_shell() -> void:
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
-	var event_panel := PanelContainer.new()
-	event_panel.custom_minimum_size = Vector2(620,0)
-	event_panel.add_theme_stylebox_override("panel",_panel_style(Color(0.045,0.065,0.075,0.99),22,_phase_accent()))
-	center.add_child(event_panel)
+	var event_frame := MobileCard.new()
+	event_frame.custom_minimum_size = Vector2(620,0)
+	event_frame.panel_color = Color("#10272d")
+	event_frame.border_color = Color("#d5ba6a")
+	event_frame.inner_glow = Color("#5b9e97")
+	center.add_child(event_frame)
 	var event_margin := MarginContainer.new()
-	for side in ["margin_left","margin_right","margin_top","margin_bottom"]:
-		event_margin.add_theme_constant_override(side,22)
-	event_panel.add_child(event_margin)
+	event_margin.add_theme_constant_override("margin_left",22)
+	event_margin.add_theme_constant_override("margin_right",22)
+	event_margin.add_theme_constant_override("margin_top",24)
+	event_margin.add_theme_constant_override("margin_bottom",22)
+	event_frame.add_child(event_margin)
 	overlay_box = VBoxContainer.new()
 	overlay_box.add_theme_constant_override("separation",15)
 	event_margin.add_child(overlay_box)
@@ -313,8 +372,11 @@ func _show_screen(screen_key: String) -> void:
 	current_screen = screen_key
 	_clear_content()
 	for key in nav_buttons.keys():
-		var b: Button = nav_buttons[key]
-		b.disabled = key == screen_key
+		var b = nav_buttons[key]
+		if b.has_method("set_selected"):
+			b.set_selected(key == screen_key)
+		else:
+			b.disabled = key == screen_key
 
 	match screen_key:
 		"life": _render_life()
@@ -335,7 +397,8 @@ func _clear_content() -> void:
 
 func _update_phase_presentation() -> void:
 	var phase := _current_phase()
-	background.texture = load(String(PHASE_BACKGROUNDS.get(phase,PHASE_BACKGROUNDS[1])))
+	if backdrop != null and backdrop.has_method("set_phase"):
+		backdrop.set_phase(phase)
 	if fx != null:
 		fx.set_phase(phase)
 	if audio != null:
@@ -386,8 +449,9 @@ func _render_life() -> void:
 		String(loc["desc"]),String(loc["danger"]),_qi_density_label(float(loc["qi"]))
 	]))
 
-	var action_title := _label("AÇÕES DESTE LUGAR",17,Color(0.95,0.84,0.61))
-	content.add_child(action_title)
+	var action_separator := OrnateSeparatorScript.new()
+	action_separator.setup("AÇÕES DESTE LUGAR",_phase_accent())
+	content.add_child(action_separator)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation",10)
@@ -420,6 +484,9 @@ func _life_status_text() -> String:
 
 func _render_map() -> void:
 	screen_title.text = "MAPA DOS CINCO CAMINHOS"
+	var map_sep := OrnateSeparatorScript.new()
+	map_sep.setup("REGIÕES E ROTAS",_phase_accent())
+	content.add_child(map_sep)
 
 	var phase_tabs := HBoxContainer.new()
 	phase_tabs.add_theme_constant_override("separation",6)
@@ -491,7 +558,8 @@ func _map_location_selected(key:String) -> void:
 	map_selected_location = key
 	audio.play_sfx("tap")
 	_show_screen("map")
-	background.texture = load(String(PHASE_BACKGROUNDS[selected_map_phase]))
+	if backdrop != null and backdrop.has_method("set_phase"):
+		backdrop.set_phase(selected_map_phase)
 	if fx != null:
 		fx.set_phase(selected_map_phase)
 
@@ -501,21 +569,28 @@ func _select_map_phase(value:int) -> void:
 	var keys: Array[String] = GameContentScript.phase_locations(selected_map_phase)
 	map_selected_location = current_location if keys.has(current_location) else (keys[0] if not keys.is_empty() else "")
 	_show_screen("map")
-	background.texture = load(String(PHASE_BACKGROUNDS[selected_map_phase]))
+	if backdrop != null and backdrop.has_method("set_phase"):
+		backdrop.set_phase(selected_map_phase)
 	if fx != null:
 		fx.set_phase(selected_map_phase)
 
 func _render_cultivation() -> void:
 	screen_title.text = "CULTIVO · CORPO · DAO"
+	var cult_sep := OrnateSeparatorScript.new()
+	cult_sep.setup("DANTIAN E MERIDIANOS",_phase_accent())
+	content.add_child(cult_sep)
 	var life := world_state.current_life
 	var realm_index := int(life.get("realm_index",0))
 
-	var art := TextureRect.new()
-	art.texture = load("res://assets/mobile/bg_cultivation.svg")
-	art.custom_minimum_size = Vector2(668,285)
-	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	content.add_child(art)
+	var diagram := CultivationDiagramScript.new()
+	diagram.setup(
+		realm_index,
+		float(life.get("cultivation_progress",0.0)),
+		float(life.get("meridian_integrity",1.0)),
+		float(life.get("dao_insight",0.0)),
+		_phase_accent()
+	)
+	content.add_child(diagram)
 
 	var state_card := _add_card("Estado Espiritual")
 	var diagnosis := "O corpo ainda não revelou um caminho espiritual."
@@ -556,6 +631,9 @@ func _render_cultivation() -> void:
 
 func _render_people() -> void:
 	screen_title.text = "PESSOAS · FAMÍLIA · DESTINOS"
+	var people_sep := OrnateSeparatorScript.new()
+	people_sep.setup("VÍNCULOS QUE SOBREVIVEM AO TEMPO",_phase_accent())
+	content.add_child(people_sep)
 
 	if world_state.current_rare_encounter.size() > 0:
 		var p: Dictionary = world_state.current_rare_encounter
@@ -607,6 +685,9 @@ func _render_people() -> void:
 
 func _render_inventory() -> void:
 	screen_title.text = "BOLSA · EQUIPAMENTO · TESOUROS"
+	var bag_sep := OrnateSeparatorScript.new()
+	bag_sep.setup("PERTENCES DESTA VIDA",_phase_accent())
+	content.add_child(bag_sep)
 	var life := world_state.current_life
 
 	var equip := _add_card("Equipamento desta Vida")
@@ -639,21 +720,17 @@ func _render_inventory() -> void:
 	grid.add_theme_constant_override("h_separation",8)
 	grid.add_theme_constant_override("v_separation",8)
 	for item in visible_items:
-		var b := Button.new()
-		b.text = "%s\n%s ×%d\n[%s]" % [
-			_item_symbol(String(item.get("kind","Objeto"))),
-			String(item.get("name","Item")),int(item.get("qty",1)),
-			String(item.get("rarity","Comum"))
-		]
-		b.custom_minimum_size = Vector2(214,132)
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.add_theme_font_size_override("font_size",13)
-		b.pressed.connect(_inspect_item.bind(item))
-		grid.add_child(b)
+		var tile := InventoryTileScript.new()
+		tile.setup(item)
+		tile.inspect_requested.connect(_inspect_item)
+		grid.add_child(tile)
 	content.add_child(grid)
 
 func _render_chronicle() -> void:
 	screen_title.text = "CRÔNICA DOS NOVE CÉUS"
+	var chron_sep := OrnateSeparatorScript.new()
+	chron_sep.setup("MEMÓRIA DAS VIDAS",_phase_accent())
+	content.add_child(chron_sep)
 	var phase_card := _add_card("Fases Conhecidas")
 	var realm_index := int(world_state.current_life.get("realm_index",0))
 	var unlocked := GameContentScript.unlocked_phase_for_realm(realm_index)
@@ -1370,10 +1447,16 @@ func _accept_encounter() -> void:
 func _render_world_events() -> void:
 	WorldEventSystemScript.ensure_events(world_state.active_dynamic_events,world_state.world_year,world_state.world_day,rng)
 	var active: Array[Dictionary] = WorldEventSystemScript.active_events(world_state.active_dynamic_events)
-	var card := _add_card("Eventos do Mundo")
+
+	var separator := OrnateSeparatorScript.new()
+	separator.setup("EVENTOS DO MUNDO",_phase_accent())
+	content.add_child(separator)
+
 	if active.is_empty():
-		card.add_child(_body_label("Nenhum acontecimento importante está ativo neste momento."))
+		var empty := _add_card("O mundo está quieto — por enquanto")
+		empty.add_child(_body_label("Nenhum acontecimento importante está ativo. O calendário continua avançando e novas situações podem surgir."))
 		return
+
 	for event in active:
 		var key: String = String(event.get("location","spring_village"))
 		var location_name := key
@@ -1384,15 +1467,25 @@ func _render_world_events() -> void:
 		var current_realm: int = int(world_state.current_life.get("realm_index",0))
 		var warning := ""
 		if current_realm < recommended:
-			warning = "\n⚠ Recomendado: %s" % REALMS[clampi(recommended,0,REALMS.size()-1)]
-		card.add_child(_body_label("%s · %d dias restantes\n%s\nLocal: %s%s" % [
-			String(event.get("title","Evento")),remaining,String(event.get("text","")),location_name,warning
-		]))
-		var go := Button.new()
-		go.text = "ACOMPANHAR EVENTO"
-		go.custom_minimum_size = Vector2(0,50)
-		go.pressed.connect(_world_event_go.bind(String(event.get("uid",""))))
-		card.add_child(go)
+			warning = "⚠ Recomendado: %s" % REALMS[clampi(recommended,0,REALMS.size()-1)]
+		var event_card := EventCardScript.new()
+		event_card.setup(event,location_name,remaining,warning,_event_accent(String(event.get("type",""))))
+		event_card.follow_requested.connect(_world_event_go)
+		content.add_child(event_card)
+
+func _event_accent(event_type:String) -> Color:
+	match event_type:
+		"spirit_rain": return Color("#79cddd")
+		"plague": return Color("#9ec5a2")
+		"eclipse": return Color("#a58bd1")
+		"faction_conflict","tournament","rogue_bounty": return Color("#d17b5d")
+		"beast_tide": return Color("#c96c62")
+		"herb_bloom": return Color("#8dc68c")
+		"ancient_opening": return Color("#c7a46d")
+		"sect_recruitment": return Color("#e0c36f")
+		"spirit_vein": return Color("#70d1b5")
+		"heaven_omen": return Color("#d4b7ed")
+		_: return _phase_accent()
 
 func _world_event_go(uid:String) -> void:
 	var event: Dictionary = WorldEventSystemScript.find_event(world_state.active_dynamic_events,uid)
@@ -1955,7 +2048,9 @@ func _add_card(title_text:String) -> VBoxContainer:
 	var inner := VBoxContainer.new()
 	inner.add_theme_constant_override("separation",9)
 	margin.add_child(inner)
-	var title := _label(title_text,19,Color(0.96,0.84,0.61))
+	var eyebrow := _label("◇  NOVE CÉUS",10,Color(_phase_accent(),0.72))
+	inner.add_child(eyebrow)
+	var title := _label(title_text,20,Color("#f2e3b9"))
 	inner.add_child(title)
 	return inner
 
@@ -1971,11 +2066,13 @@ func _small_label(text_value:String,color_value:Color) -> Label:
 
 func _standalone_button(title_text:String,subtext:String,callback:Callable,sfx_kind:String="tap") -> Button:
 	var b := Button.new()
-	b.text = "%s\n%s" % [title_text,subtext]
-	b.custom_minimum_size = Vector2(668,84)
+	b.text = "✦  %s\n%s" % [title_text,subtext]
+	b.custom_minimum_size = Vector2(668,88)
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.add_theme_font_size_override("font_size",15)
 	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_stylebox_override("normal",_button_style(Color("#18373b"),Color(_phase_accent(),0.62)))
+	b.add_theme_stylebox_override("pressed",_button_style(Color("#24494b"),_phase_accent()))
 	b.pressed.connect(func() -> void:
 		audio.play_sfx(sfx_kind)
 		callback.call()
@@ -1984,11 +2081,13 @@ func _standalone_button(title_text:String,subtext:String,callback:Callable,sfx_k
 
 func _action_button(title_text:String,subtext:String,callback:Callable) -> Button:
 	var b := Button.new()
-	b.text = "%s\n%s" % [title_text,subtext]
-	b.custom_minimum_size = Vector2(329,94)
+	b.text = "◆  %s\n%s" % [title_text,subtext]
+	b.custom_minimum_size = Vector2(329,102)
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.add_theme_font_size_override("font_size",13)
 	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_stylebox_override("normal",_button_style(Color("#142f34"),Color("#6e9992")))
+	b.add_theme_stylebox_override("pressed",_button_style(Color("#21454a"),_phase_accent()))
 	b.pressed.connect(func() -> void:
 		audio.play_sfx("tap")
 		callback.call()
