@@ -33,7 +33,7 @@ func _notification(what:int)->void:
 	# ground / courtyard
 	draw_colored_polygon(PackedVector2Array([Vector2(0,450),Vector2(720,400),Vector2(720,1060),Vector2(0,1060)]),Color("#2f4737"))
 	# pond
-	draw_ellipse(Vector2(530,770),Vector2(105,52),Color("#466d71"))
+	_draw_oval(Vector2(530,770),Vector2(105,52),Color("#466d71"))
 	# paths
 	draw_line(Vector2(350,1020),Vector2(340,540),Color("#a89d78",0.35),42)
 	draw_line(Vector2(340,540),Vector2(160,350),Color("#a89d78",0.25),26)
@@ -42,7 +42,7 @@ func _notification(what:int)->void:
 	for x in [50.0,200.0,500.0,660.0]:
 		draw_colored_polygon(PackedVector2Array([Vector2(x-120,340),Vector2(x,100+fmod(x,90)),Vector2(x+130,340)]),Color("#31514b",0.55))
 
-func draw_ellipse(c:Vector2,r:Vector2,col:Color)->void:
+func _draw_oval(c:Vector2,r:Vector2,col:Color)->void:
 	var pts:=PackedVector2Array()
 	for i in range(40):
 		var a:=TAU*float(i)/40.0
