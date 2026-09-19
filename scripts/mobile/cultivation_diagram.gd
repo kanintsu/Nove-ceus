@@ -72,7 +72,7 @@ func _draw_diagram() -> void:
 		draw_circle(nodes[i],4.2,node_color)
 
 	# dantian and progress ring
-	var dantian := nodes[6]
+	var dantian: Vector2 = nodes[6]
 	for rr in [27.0,20.0,13.0]:
 		draw_arc(dantian,rr,0.0,TAU,48,Color("#72dce3",0.16),1.2)
 	var angle := TAU*(progress/100.0)
