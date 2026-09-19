@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="520" viewBox="0 0 420 520">
+<defs><linearGradient id="robe" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d9ddd8"/><stop offset=".5" stop-color="#75888e"/><stop offset="1" stop-color="#283740"/></linearGradient><radialGradient id="aura"><stop stop-color="#83d7ef" stop-opacity=".7"/><stop offset="1" stop-color="#83d7ef" stop-opacity="0"/></radialGradient></defs>
+<ellipse cx="210" cy="300" rx="190" ry="210" fill="url(#aura)"/>
+<circle cx="210" cy="118" r="58" fill="#d7b092"/>
+<path d="M151 110c6-85 112-88 123-8-27-18-42-44-61-59-8 27-32 44-62 67z" fill="#202226"/>
+<path d="M132 210c20-63 136-72 156 0l34 218H98z" fill="url(#robe)"/>
+<path d="M210 180l-38 76 38 44 38-44z" fill="#1f2c39"/>
+<path d="M116 274c-70 35-87 76-76 96 19 33 82-9 123-48" fill="none" stroke="#bfc9c8" stroke-width="26" stroke-linecap="round"/>
+<path d="M304 274c70 35 87 76 76 96-19 33-82-9-123-48" fill="none" stroke="#bfc9c8" stroke-width="26" stroke-linecap="round"/>
+<path d="M105 428c45-58 165-58 210 0-45 32-165 32-210 0z" fill="#202a33"/>
+<circle cx="210" cy="300" r="24" fill="#8bd7ee" opacity=".85"/>
+</svg>
