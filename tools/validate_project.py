@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 errors=[]
 warnings=[]
 
-required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/mobile/mobile_game.gd', ROOT/'scripts/mobile/mobile_card.gd', ROOT/'scripts/mobile/game_content.gd', ROOT/'scripts/mobile/mobile_audio.gd', ROOT/'scripts/mobile/mobile_fx.gd', ROOT/'scripts/mobile/tactical_combat.gd', ROOT/'scripts/mobile/journey_system.gd', ROOT/'scripts/mobile/contract_system.gd', ROOT/'scripts/mobile/relationship_system.gd', ROOT/'export_presets.cfg']
+required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/mobile/mobile_game.gd', ROOT/'scripts/mobile/mobile_card.gd', ROOT/'scripts/mobile/game_content.gd', ROOT/'scripts/mobile/mobile_audio.gd', ROOT/'scripts/mobile/mobile_fx.gd', ROOT/'scripts/mobile/tactical_combat.gd', ROOT/'scripts/mobile/journey_system.gd', ROOT/'scripts/mobile/contract_system.gd', ROOT/'scripts/mobile/relationship_system.gd', ROOT/'scripts/mobile/cultivation_session.gd', ROOT/'export_presets.cfg']
 for p in required:
     if not p.exists(): errors.append(f'missing required file: {p.relative_to(ROOT)}')
 
@@ -95,6 +95,6 @@ if errors:
 print('Static project validation: PASS')
 
 gameplay=(ROOT/'scripts/mobile/mobile_game.gd').read_text('utf-8')
-for expected in ['_start_tactical_combat','_render_battle_overlay','_start_journey','_render_journey_overlay','_render_contract_board','_person_action']:
+for expected in ['_start_tactical_combat','_render_battle_overlay','_start_journey','_render_journey_overlay','_render_contract_board','_person_action','_cultivate_mode']:
     if f'func {expected}' not in gameplay:
         errors.append(f'V0.5 gameplay missing {expected}')
