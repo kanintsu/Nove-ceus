@@ -13,7 +13,7 @@ func _ready() -> void:
 	_build_controls()
 
 func _build_controls() -> void:
-	var joystick := VirtualJoystick.new()
+	var joystick := TouchJoystick.new()
 	joystick.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	joystick.offset_left = 24.0
 	joystick.offset_top = -200.0

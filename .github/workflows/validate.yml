@@ -22,6 +22,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Import project and parse scripts
-        run: godot --headless --editor --path . --quit
+        run: |
+          set -o pipefail
+          godot --headless --editor --path . --quit 2>&1 | tee import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" import.log; then exit 1; fi
       - name: Boot main scene briefly
-        run: godot --headless --path . --quit-after 3
+        run: |
+          set -o pipefail
+          godot --headless --path . --quit-after 3 2>&1 | tee boot.log
+          if grep -E "SCRIPT ERROR|Parse Error|Invalid call|Invalid access|Failed to load script" boot.log; then exit 1; fi
