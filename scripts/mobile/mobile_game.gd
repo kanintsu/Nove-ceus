@@ -7,6 +7,10 @@ const GameContentScript = preload("res://scripts/mobile/game_content.gd")
 const MobileAudioScript = preload("res://scripts/mobile/mobile_audio.gd")
 const MobileFXScript = preload("res://scripts/mobile/mobile_fx.gd")
 const PhaseMapScript = preload("res://scripts/mobile/phase_map_visual.gd")
+const TacticalCombatScript = preload("res://scripts/mobile/tactical_combat.gd")
+const JourneySystemScript = preload("res://scripts/mobile/journey_system.gd")
+const ContractSystemScript = preload("res://scripts/mobile/contract_system.gd")
+const RelationshipSystemScript = preload("res://scripts/mobile/relationship_system.gd")
 
 const REALMS: Array[String] = [
 	"Mortal",
@@ -106,6 +110,8 @@ var current_location := "spring_village"
 var selected_map_phase := 1
 var inventory_filter := "Todos"
 var map_selected_location := "spring_village"
+var active_battle: Dictionary = {}
+var active_journey: Dictionary = {}
 var life_over := false
 var music_enabled := true
 
@@ -166,6 +172,7 @@ func _initialize_life_runtime() -> void:
 			{"name":"Faca de ferro","qty":1,"kind":"Equipamento","rarity":"Comum","desc":"Uma lâmina mortal simples e confiável."},
 			{"name":"Tecido comum","qty":2,"kind":"Material","rarity":"Comum","desc":"Material usado em reparos e trocas."}
 		]
+	ContractSystemScript.ensure_contracts(life,_current_phase(),world_state.world_year,world_state.world_day,rng)
 
 func _build_shell() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -348,6 +355,8 @@ func _render_life() -> void:
 	var goal := _add_card("Objetivo da Fase %d" % _current_phase())
 	var goal_text := _body_label(String(phase_data["goal"]))
 	goal.add_child(goal_text)
+
+	_render_contract_board()
 
 	var avatar_wrap := CenterContainer.new()
 	avatar_wrap.custom_minimum_size = Vector2(668,300)
@@ -543,7 +552,25 @@ func _render_people() -> void:
 				int(person.get("age",0)),String(person.get("role","mortal")),
 				String(person.get("relation","conhecido")),String(person.get("path","mortal"))
 			]
+			RelationshipSystemScript.ensure_person(person)
+			status += "\nVínculo: %s · Afinidade %d · Confiança %d" % [
+				RelationshipSystemScript.relation_title(person),
+				int(person.get("bond",0)),int(person.get("trust",0))
+			]
 			pc.add_child(_body_label(status))
+			var rel_grid := GridContainer.new()
+			rel_grid.columns = 2
+			rel_grid.add_theme_constant_override("h_separation",6)
+			rel_grid.add_theme_constant_override("v_separation",6)
+			for rel_action in [
+				["talk","CONVERSAR"],["teach","ENSINAR"],["train","TREINAR JUNTO"],["support","APOIAR · 20 prata"]
+			]:
+				var rb := Button.new()
+				rb.text = String(rel_action[1])
+				rb.custom_minimum_size = Vector2(300,50)
+				rb.pressed.connect(_person_action.bind(person,String(rel_action[0])))
+				rel_grid.add_child(rb)
+			pc.add_child(rel_grid)
 
 	var social := _add_card("Mundo Social")
 	social.add_child(_body_label("Reputação no mundo: %d   ·   Reputação na seita: %d\nRelações futuras incluem família, discípulos, mestres, rivais, clãs e descendentes." % [
@@ -618,14 +645,15 @@ func _perform_location_action(action: String) -> void:
 	match action:
 		"work": _work()
 		"study","research": _study()
-		"train","spar": _train_body()
+		"train": _train_body()
+		"spar": _start_tactical_combat("spar")
 		"rumors": _hear_rumor()
 		"travel": _show_screen("map")
 		"encounter","relationships": _seek_people()
 		"gather": _gather()
 		"meditate": _meditate() if bool(world_state.current_life.get("qi_awakened",false)) else _try_sense_qi()
-		"hunt": _hunt()
-		"explore": _explore()
+		"hunt": _start_tactical_combat("hunt")
+		"explore": _start_journey()
 		"trade": _trade()
 		"spirit_test": _spiritual_test()
 		"auction": _auction()
@@ -696,6 +724,7 @@ func _work() -> void:
 	var pay := 12 + int(life.get("intelligence",50))/10 + rng.randi_range(0,9)
 	life["silver"] = int(life.get("silver",0)) + pay
 	life["worldly_knowledge"] = minf(float(life.get("worldly_knowledge",0.0))+1.8,100.0)
+	_record_contract_action("work")
 	_show_toast("Sete dias de trabalho renderam %d de prata." % pay)
 	audio.play_sfx("item")
 	_show_screen("life")
@@ -706,6 +735,7 @@ func _study() -> void:
 	if life_over: return
 	var gain := 3.0 + float(life.get("intelligence",50))/28.0
 	life["worldly_knowledge"] = minf(float(life.get("worldly_knowledge",0.0))+gain,100.0)
+	_record_contract_action("study")
 	_show_toast("Estudo concluído: +%.1f%% conhecimento mortal." % gain)
 	_show_screen("life")
 
@@ -723,6 +753,7 @@ func _hear_rumor() -> void:
 	if life_over: return
 	var phase := _current_phase()
 	var rumors: Array = RUMORS[phase]
+	_record_contract_action("rumors")
 	_show_event("RUMOR DA FASE %d" % phase,String(rumors[rng.randi_range(0,rumors.size()-1)]),[
 		["GUARDAR NA MEMÓRIA",Callable(self,"_close_overlay")]
 	])
@@ -748,25 +779,125 @@ func _gather() -> void:
 	var loot: Array = LOOT_BY_PHASE[_current_phase()]
 	var found: Dictionary = loot[rng.randi_range(0,loot.size()-1)].duplicate(true)
 	_add_item(found)
+	_record_contract_action("gather")
 	_show_toast("Coleta: %s ×%d." % [String(found["name"]),int(found["qty"])])
 	audio.play_sfx("item")
 	_show_screen("inventory")
 
-func _explore() -> void:
-	_advance_days(3 + _current_phase())
-	if life_over: return
-	var danger := String(_location()["danger"])
-	var danger_chance: float = float({"Baixo":0.02,"Médio":0.07,"Alto":0.14,"Extremo":0.22,"Lendário":0.28}.get(danger,0.05))
-	if rng.randf() < float(danger_chance):
-		_show_event("O LUGAR REAGIU À SUA PRESENÇA","Você entrou fundo demais. Algo perigoso bloqueia o caminho.",[
-			["RECUAR",Callable(self,"_event_flee")],
-			["ARRISCAR",Callable(self,"_event_risk")]
-		])
-		audio.play_sfx("danger")
+func _start_journey() -> void:
+	if not active_journey.is_empty():
+		_render_journey_overlay()
 		return
-	_gather()
+	active_journey = JourneySystemScript.create_journey(_location(),_current_phase())
+	_render_journey_overlay()
+
+func _render_journey_overlay() -> void:
+	if active_journey.is_empty():
+		return
+	var step: int = int(active_journey.get("step",1))
+	var max_steps: int = int(active_journey.get("max_steps",3))
+	var risk: int = int(active_journey.get("risk",0))
+	var discovery: int = int(active_journey.get("discovery",0))
+	var supplies: int = int(active_journey.get("supplies",0))
+	_show_event(
+		"EXPEDIÇÃO · ETAPA %d/%d" % [step,max_steps],
+		"%s\n\nRisco acumulado: %d   ·   Descoberta: %d   ·   Suprimentos: %d\n\nEscolha como avançar." % [
+			String(active_journey.get("location_name","Local")),risk,discovery,supplies
+		],
+		[
+			["ROTA CAUTELOSA · +segurança",Callable(self,"_journey_choose").bind("safe")],
+			["ROTA DESCONHECIDA · equilíbrio",Callable(self,"_journey_choose").bind("balanced")],
+			["ROTA PROFUNDA · +risco / +descoberta",Callable(self,"_journey_choose").bind("deep")],
+			["ENCERRAR EXPEDIÇÃO",Callable(self,"_journey_abort")]
+		]
+	)
+
+func _journey_choose(route_key:String) -> void:
+	_close_overlay()
+	if active_journey.is_empty():
+		return
+	var result: Dictionary = JourneySystemScript.choose_route(active_journey,route_key,world_state.current_life,rng)
+	_advance_days(int(result.get("days",1)))
+	if life_over:
+		active_journey.clear()
+		return
+	var event_type: String = String(result.get("type","quiet"))
+	var event_text: String = String(result.get("text",""))
+	match event_type:
+		"danger":
+			_show_event("PERIGO NA ROTA",event_text,[
+				["ENFRENTAR",Callable(self,"_journey_combat")],
+				["RECUAR E ABANDONAR",Callable(self,"_journey_abort")]
+			])
+			audio.play_sfx("danger")
+		"discovery":
+			_show_event("ALGO FORA DO COMUM",event_text,[
+				["INVESTIGAR",Callable(self,"_journey_discovery")],
+				["NÃO ARRISCAR",Callable(self,"_journey_continue")]
+			])
+			audio.play_sfx("rare")
+		"insight":
+			world_state.current_life["dao_insight"] = float(world_state.current_life.get("dao_insight",0.0))+1.5
+			_show_event("COMPREENSÃO NA ESTRADA",event_text+"\n\nDao +1,5.",[
+				["CONTINUAR",Callable(self,"_journey_continue")]
+			])
+			audio.play_sfx("qi")
+		_:
+			_show_event("A JORNADA CONTINUA",event_text,[
+				["AVANÇAR",Callable(self,"_journey_continue")]
+			])
+
+func _journey_discovery() -> void:
+	_close_overlay()
+	if active_journey.is_empty():
+		return
+	var quality: int = JourneySystemScript.final_quality(active_journey)
+	var phase_loot: Array = LOOT_BY_PHASE[_current_phase()]
+	var found: Dictionary = phase_loot[rng.randi_range(0,phase_loot.size()-1)].duplicate(true)
+	found["qty"] = maxi(1,int(found.get("qty",1))+int(quality/5.0))
+	_add_item(found)
+	active_journey["discovery"] = int(active_journey.get("discovery",0))+2
+	_show_toast("Descoberta: %s ×%d." % [String(found["name"]),int(found["qty"])])
+	audio.play_sfx("item")
+	_journey_continue()
+
+func _journey_continue() -> void:
+	_close_overlay()
+	if active_journey.is_empty():
+		return
+	JourneySystemScript.advance_step(active_journey)
+	if bool(active_journey.get("finished",false)):
+		_journey_finish()
+	else:
+		_render_journey_overlay()
+
+func _journey_combat() -> void:
+	_close_overlay()
+	_start_tactical_combat("journey")
+
+func _journey_abort() -> void:
+	_close_overlay()
+	active_journey.clear()
+	_show_toast("Você encerrou a expedição e voltou vivo.")
+	_show_screen("life")
+
+func _journey_finish() -> void:
+	if active_journey.is_empty():
+		return
+	var quality: int = JourneySystemScript.final_quality(active_journey)
+	var reward_silver: int = 8+quality*4
+	world_state.current_life["silver"] = int(world_state.current_life.get("silver",0))+reward_silver
+	if quality >= 8:
+		world_state.record_world_event("a Vida %d concluiu uma exploração arriscada em %s." % [world_state.incarnation_index,String(_location()["name"])])
+	_record_contract_action("explore")
+	active_journey.clear()
+	_close_overlay()
+	_show_toast("Expedição concluída. Qualidade %d · +%d prata." % [quality,reward_silver])
+	_show_screen("life")
 
 func _hunt() -> void:
+	_start_tactical_combat("hunt")
+	return
 	_advance_days(2)
 	if life_over: return
 	var realm := int(world_state.current_life.get("realm_index",0))
@@ -882,6 +1013,7 @@ func _trial() -> void:
 	if rng.randf() < chance:
 		world_state.current_life["sect_reputation"] = int(world_state.current_life.get("sect_reputation",0))+4
 		world_state.current_life["dao_insight"] = float(world_state.current_life.get("dao_insight",0.0))+2.0
+		_record_contract_action("trial")
 		_show_event("PROVAÇÃO SUPERADA","Você saiu mais conhecido — e sabendo algo que não sabia antes.",[["CONTINUAR",Callable(self,"_close_overlay")]])
 		audio.play_sfx("breakthrough")
 	else:
@@ -920,6 +1052,7 @@ func _comprehend() -> void:
 	var life := world_state.current_life
 	var gain := 1.0 + float(life.get("intelligence",50))/40.0 + _current_phase()*0.35
 	life["dao_insight"] = float(life.get("dao_insight",0.0))+gain
+	_record_contract_action("comprehend")
 	_show_toast("Contemplação: +%.1f compreensão do Dao." % gain)
 	audio.play_sfx("qi")
 
@@ -1179,6 +1312,195 @@ func _accept_encounter() -> void:
 		_show_toast("Essa pessoa agora faz parte da história das suas vidas.")
 		audio.play_sfx("rare")
 	_show_screen("people")
+
+func _render_contract_board() -> void:
+	var life := world_state.current_life
+	ContractSystemScript.ensure_contracts(life,_current_phase(),world_state.world_year,world_state.world_day,rng)
+	var card := _add_card("Contratos e objetivos locais")
+	var contracts: Array = life.get("contracts",[])
+	var shown := 0
+	var now_abs: int = world_state.world_year*360+world_state.world_day
+	for contract in contracts:
+		if int(contract.get("phase",0)) != _current_phase():
+			continue
+		if bool(contract.get("failed",false)) or bool(contract.get("claimed",false)):
+			continue
+		shown += 1
+		var complete: bool = bool(contract.get("completed",false))
+		var remaining: int = maxi(0,int(contract.get("expires",now_abs))-now_abs)
+		var line := "%s\n%s\nProgresso %d/%d · %d dias restantes · Recompensa %d prata" % [
+			String(contract.get("title","Contrato")),String(contract.get("text","")),
+			int(contract.get("progress",0)),int(contract.get("goal",1)),remaining,
+			int(contract.get("reward_silver",0))
+		]
+		card.add_child(_body_label(line))
+		if complete:
+			var claim := Button.new()
+			claim.text = "RECEBER RECOMPENSA"
+			claim.custom_minimum_size = Vector2(0,50)
+			claim.pressed.connect(_claim_contract.bind(String(contract.get("uid",""))))
+			card.add_child(claim)
+	if shown == 0:
+		card.add_child(_body_label("Nenhum contrato ativo nesta fase."))
+
+func _claim_contract(uid:String) -> void:
+	var reward: Dictionary = ContractSystemScript.claim(world_state.current_life,uid)
+	if reward.is_empty():
+		_show_toast("Este contrato ainda não pode ser recebido.")
+		return
+	_show_toast("%s concluído: +%d prata e +%d reputação." % [
+		String(reward.get("title","Contrato")),int(reward.get("silver",0)),int(reward.get("rep",0))
+	])
+	audio.play_sfx("item")
+	_show_screen("life")
+
+func _record_contract_action(action:String) -> void:
+	var completed: Array[String] = ContractSystemScript.record_action(world_state.current_life,action,_current_phase())
+	for title in completed:
+		_show_toast("Contrato concluído: %s. Recompensa disponível na tela Vida." % title)
+		audio.play_sfx("rare")
+
+func _person_action(person:Dictionary,action:String) -> void:
+	if not bool(person.get("alive",true)):
+		_show_toast("Essa pessoa já não está viva.")
+		return
+	var result: Dictionary = RelationshipSystemScript.interact(person,action,world_state.current_life)
+	var days: int = int(result.get("days",0))
+	if days > 0:
+		_advance_days(days)
+	if life_over:
+		return
+	_show_toast(String(result.get("text","A relação mudou.")))
+	_show_screen("people")
+
+func _start_tactical_combat(context:String) -> void:
+	if not active_battle.is_empty():
+		_render_battle_overlay()
+		return
+	active_battle = TacticalCombatScript.create_battle(world_state.current_life,_current_phase(),rng)
+	active_battle["context"] = context
+	TacticalCombatScript.roll_enemy_intent(active_battle,rng)
+	_render_battle_overlay()
+	audio.play_sfx("danger")
+
+func _render_battle_overlay() -> void:
+	if active_battle.is_empty():
+		return
+	var enemy: Dictionary = active_battle["enemy"]
+	var last_text: String = String(active_battle.get("last_text",""))
+	var body := "%s\nHP %d/%d\nIntenção: %s\n\nVocê: HP %d/%d · Fôlego %d/3 · Foco %d · Qi %d/%d" % [
+		String(enemy.get("name","Inimigo")),int(enemy.get("hp",0)),int(enemy.get("max_hp",0)),
+		TacticalCombatScript.intent_text(active_battle),
+		int(active_battle.get("player_hp",0)),int(active_battle.get("player_max_hp",0)),
+		int(active_battle.get("player_stamina",0)),int(active_battle.get("player_focus",0)),
+		int(active_battle.get("player_qi",0)),int(active_battle.get("player_max_qi",0))
+	]
+	if not last_text.is_empty():
+		body += "\n\n"+last_text
+	_show_event("COMBATE · TURNO %d" % int(active_battle.get("turn",1)),body,[
+		["ATACAR",Callable(self,"_battle_action").bind("strike")],
+		["DEFENDER",Callable(self,"_battle_action").bind("guard")],
+		["OBSERVAR",Callable(self,"_battle_action").bind("observe")],
+		["FINTAR",Callable(self,"_battle_action").bind("feint")],
+		["TÉCNICA DE QI",Callable(self,"_battle_action").bind("technique")],
+		["USAR ITEM",Callable(self,"_battle_use_item")],
+		["FUGIR",Callable(self,"_battle_action").bind("flee")]
+	])
+
+func _battle_action(action:String) -> void:
+	_close_overlay()
+	if active_battle.is_empty():
+		return
+	var player_result: Dictionary = TacticalCombatScript.resolve_player_action(active_battle,action,world_state.current_life,rng)
+	var text_value: String = String(player_result.get("text",""))
+	if bool(active_battle.get("finished",false)):
+		active_battle["last_text"] = text_value
+		_finish_battle()
+		return
+	var enemy_text: String = TacticalCombatScript.resolve_enemy_turn(active_battle,rng)
+	text_value += "\n"+enemy_text
+	if int(active_battle.get("player_hp",0)) <= 0:
+		active_battle["last_text"] = text_value
+		_handle_battle_defeat()
+		return
+	TacticalCombatScript.next_turn(active_battle,rng)
+	active_battle["last_text"] = text_value
+	_render_battle_overlay()
+
+func _battle_use_item() -> void:
+	_close_overlay()
+	if active_battle.is_empty():
+		return
+	var inv: Array = world_state.current_life.get("inventory",[])
+	var used := false
+	for item in inv:
+		var name: String = String(item.get("name",""))
+		if int(item.get("qty",0)) <= 0:
+			continue
+		if name == "Pílula de recuperação" or name == "Provisões simples":
+			item["qty"] = int(item.get("qty",0))-1
+			var heal: int = 34 if name == "Pílula de recuperação" else 16
+			active_battle["player_hp"] = mini(int(active_battle.get("player_max_hp",100)),int(active_battle.get("player_hp",0))+heal)
+			active_battle["last_text"] = "Você usa %s e recupera %d HP." % [name,heal]
+			used = true
+			break
+	if not used:
+		active_battle["last_text"] = "Você não possui item de recuperação utilizável."
+	_render_battle_overlay()
+
+func _finish_battle() -> void:
+	if active_battle.is_empty():
+		return
+	var context: String = String(active_battle.get("context","hunt"))
+	if bool(active_battle.get("fled",false)):
+		active_battle.clear()
+		if context == "journey":
+			_journey_abort()
+		else:
+			_show_toast("Você fugiu e preservou a vida.")
+		return
+	if bool(active_battle.get("victory",false)):
+		var enemy: Dictionary = active_battle["enemy"]
+		if context == "spar":
+			world_state.current_life["body_training"] = minf(float(world_state.current_life.get("body_training",0.0))+2.5,100.0)
+			world_state.current_life["world_reputation"] = int(world_state.current_life.get("world_reputation",0))+1
+			_record_contract_action("trial")
+			_show_toast("Vitória no duelo. Corpo e reputação melhoraram.")
+		else:
+			var silver: int = int(enemy.get("reward_silver",0))
+			world_state.current_life["silver"] = int(world_state.current_life.get("silver",0))+silver
+			_add_item({"name":String(enemy.get("loot","Material de combate")),"qty":1,"kind":"Besta","rarity":"Raro","desc":"Obtido em combate tático."})
+			if context == "hunt":
+				_record_contract_action("hunt")
+			_show_toast("Vitória: +%d prata e %s." % [silver,String(enemy.get("loot","recurso"))])
+		audio.play_sfx("breakthrough")
+	active_battle.clear()
+	if context == "journey":
+		_journey_continue()
+	else:
+		_show_screen("life")
+
+func _handle_battle_defeat() -> void:
+	if active_battle.is_empty():
+		return
+	var context: String = String(active_battle.get("context","hunt"))
+	var enemy: Dictionary = active_battle["enemy"]
+	var enemy_realm: int = int(enemy.get("realm",0))
+	var player_realm: int = int(world_state.current_life.get("realm_index",0))
+	active_battle.clear()
+	_close_overlay()
+	if context == "spar":
+		_damage_meridians(0.03)
+		_show_toast("Você perdeu o duelo, mas saiu vivo e aprendeu com a derrota.")
+		return
+	var death_chance: float = clampf(0.22+float(enemy_realm-player_realm)*0.08,0.18,0.72)
+	if rng.randf() < death_chance:
+		_end_life("morto em combate contra %s" % String(enemy.get("name","um inimigo")))
+		return
+	_damage_meridians(0.14)
+	if context == "journey":
+		active_journey.clear()
+	_show_toast("Você sobreviveu derrotado, com ferimentos sérios.")
 
 func _set_inventory_filter(value:String) -> void:
 	inventory_filter = value
