@@ -223,3 +223,87 @@ func combat_action(action:String)->String:
 		return "Você foi derrotado e sobreviveu por pouco."
 	combat["turn"]=int(combat["turn"])+1
 	return String(combat["log"])+" O inimigo causa %d de dano." % incoming
+
+
+func interact_person(index:int,action:String)->String:
+	if index<0 or index>=people.size():return "Essa pessoa já não está por perto."
+	var person:Dictionary=people[index]
+	match action:
+		"talk":
+			person["bond"]=int(person.get("bond",0))+2
+			person["trust"]=int(person.get("trust",0))+1
+			advance_days(1)
+			return "Vocês conversaram por horas. O vínculo cresceu."
+		"teach":
+			person["bond"]=int(person.get("bond",0))+1
+			person["trust"]=int(person.get("trust",0))+2
+			knowledge=minf(100.0,knowledge+0.7)
+			advance_days(5)
+			return "Você ensinou o que sabia e também aprendeu ao explicar."
+		"train":
+			person["bond"]=int(person.get("bond",0))+1
+			body=minf(100.0,body+1.0)
+			advance_days(4)
+			return "Treinaram juntos. Nem todo crescimento depende de Qi."
+		"support":
+			if silver<20:return "Você não possui prata suficiente."
+			silver-=20
+			person["bond"]=int(person.get("bond",0))+3
+			person["trust"]=int(person.get("trust",0))+2
+			advance_days(1)
+			return "Você gastou recursos para apoiar essa pessoa."
+	return "Nada mudou."
+
+func sect_service()->String:
+	advance_days(7)
+	sect_merit+=rng.randi_range(1,3)
+	if sect_status=="Sem vínculo formal":sect_status="Servo da Seita"
+	elif sect_status=="Servo da Seita" and qi_awakened and sect_merit>=8:sect_status="Discípulo Externo"
+	elif sect_status=="Discípulo Externo" and sect_merit>=45:sect_status="Discípulo Interno"
+	elif sect_status=="Discípulo Interno" and sect_merit>=120:sect_status="Discípulo Central"
+	return "Você cumpriu deveres da seita. Mérito atual: %d." % sect_merit
+
+func resolve_event(uid:String)->String:
+	for event in world_events:
+		if String(event.get("uid",""))!=uid:continue
+		var title:=String(event.get("title","Evento"))
+		if title=="Chuva Espiritual":
+			travel_to(1)
+			if qi_awakened:
+				cultivation_progress=minf(100.0,cultivation_progress+10.0)
+				dao+=1.0
+				return "Você alcançou Qinghe durante a Chuva Espiritual. Cultivo +10% e Dao +1."
+			knowledge=minf(100.0,knowledge+2.0)
+			return "Você viu cultivadores absorvendo a chuva. Sem Qi, restou observar e aprender."
+		if title=="Caravana dos Três Rios":
+			var gain:=rng.randi_range(18,40)
+			silver+=gain
+			advance_days(2)
+			return "Você negociou com a caravana e ganhou %d prata." % gain
+		return "Você acompanhou o evento até o fim."
+	return "Esse evento já não está disponível."
+
+func mark_mission(uid:String)->String:
+	for mission in missions:
+		if String(mission.get("uid",""))==uid:
+			return "Missão marcada: %s." % String(mission["title"])
+	return "Missão não encontrada."
+
+func reincarnate()->String:
+	var passed:=rng.randi_range(6,45)
+	year+=passed
+	life_index+=1
+	age=16
+	day=rng.randi_range(1,360)
+	location_index=0
+	silver=30+rng.randi_range(0,35)
+	spirit_stones=0
+	dao=maxf(0.0,dao*0.18)
+	knowledge=maxf(0.0,knowledge*0.22)
+	body=5.0+rng.randf()*5.0
+	meridian_integrity=1.0
+	qi_awakened=false
+	realm_index=0
+	cultivation_progress=0.0
+	combat.clear()
+	return "A roda girou. %d anos passaram e a Vida %d começou." % [passed,life_index]
