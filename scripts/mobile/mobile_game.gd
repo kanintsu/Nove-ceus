@@ -323,6 +323,7 @@ func _show_screen(screen_key: String) -> void:
 		"people": _render_people()
 		"inventory": _render_inventory()
 		"chronicle": _render_chronicle()
+		"sect": _render_sect()
 
 	_update_header()
 	_update_phase_presentation()
@@ -363,6 +364,7 @@ func _render_life() -> void:
 	var goal_text := _body_label(String(phase_data["goal"]))
 	goal.add_child(goal_text)
 
+	_render_world_events()
 	_render_contract_board()
 
 	var avatar_wrap := CenterContainer.new()
@@ -394,6 +396,10 @@ func _render_life() -> void:
 		var def := _action_definition(String(action))
 		grid.add_child(_action_button(String(def[0]),String(def[1]),_perform_location_action.bind(String(action))))
 	content.add_child(grid)
+
+	var sect_status := String(world_state.current_life.get("sect_status","outsider"))
+	if sect_status != "outsider" or _current_phase() >= 2:
+		content.add_child(_standalone_button("SEITA DO CÉU VELADO","Missões, mérito, posição e oportunidades da seita.",_show_screen.bind("sect"),"tap"))
 
 	if world_state.current_rare_encounter.size() > 0:
 		content.add_child(_standalone_button("ENCONTRO RARO REGISTRADO","Uma pessoa incomum apareceu nesta região. Veja Pessoas.",_show_screen.bind("people"),"rare"))
@@ -428,14 +434,17 @@ func _render_map() -> void:
 	content.add_child(phase_tabs)
 
 	var phase_data := GameContentScript.phase(selected_map_phase)
-	var unlocked := _is_phase_unlocked(selected_map_phase)
+	var unlocked := true
 	var intro := _add_card("%s" % String(phase_data["name"]))
 	intro.add_child(_body_label("%s\n\nObjetivo: %s" % [
 		String(phase_data["subtitle"]),String(phase_data["goal"])
 	]))
-	if not unlocked:
-		var required := int(phase_data["required_realm"])
-		intro.add_child(_small_label("BLOQUEADA · Requer %s" % REALMS[clampi(required,0,REALMS.size()-1)],Color(0.96,0.61,0.53)))
+	var required := int(phase_data["required_realm"])
+	var current_realm := int(world_state.current_life.get("realm_index",0))
+	if current_realm < required:
+		intro.add_child(_small_label("ÁREA ABERTA, MAS MUITO ACIMA DO RECOMENDADO · %s" % REALMS[clampi(required,0,REALMS.size()-1)],Color(0.96,0.61,0.53)))
+	else:
+		intro.add_child(_small_label("Seu reino atual está dentro da faixa recomendada para esta fase.",Color(0.65,0.88,0.72)))
 
 	var keys: Array[String] = GameContentScript.phase_locations(selected_map_phase)
 	if not keys.has(map_selected_location):
@@ -466,12 +475,15 @@ func _render_map_location_detail(key:String,unlocked:bool) -> void:
 	if key == current_location:
 		travel.text = "VOCÊ ESTÁ AQUI"
 		travel.disabled = true
-	elif not unlocked:
-		travel.text = "FASE INACESSÍVEL"
-		travel.disabled = true
 	else:
 		var days := _travel_days(current_location,key)
-		travel.text = "VIAJAR PARA ESTE LUGAR · %d dias" % days
+		var target_phase := int(loc.get("phase",1))
+		var recommended := int(GameContentScript.phase(target_phase)["required_realm"])
+		var current_realm := int(world_state.current_life.get("realm_index",0))
+		if current_realm < recommended:
+			travel.text = "ARRISCAR VIAGEM · %d dias · ACIMA DO SEU REINO" % days
+		else:
+			travel.text = "VIAJAR PARA ESTE LUGAR · %d dias" % days
 		travel.pressed.connect(_travel_to.bind(key,days))
 	card.add_child(travel)
 
