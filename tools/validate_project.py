@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 errors=[]
 warnings=[]
 
-required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/mobile/mobile_game.gd', ROOT/'scripts/mobile/mobile_card.gd', ROOT/'export_presets.cfg']
+required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/mobile/mobile_game.gd', ROOT/'scripts/mobile/mobile_card.gd', ROOT/'scripts/mobile/game_content.gd', ROOT/'scripts/mobile/mobile_audio.gd', ROOT/'scripts/mobile/mobile_fx.gd', ROOT/'export_presets.cfg']
 for p in required:
     if not p.exists(): errors.append(f'missing required file: {p.relative_to(ROOT)}')
 
@@ -66,6 +66,23 @@ if 'window/size/viewport_width=720' not in project or 'window/size/viewport_heig
     errors.append('mobile rebuild must use 720x1280 portrait viewport')
 for obsolete in ['scripts/ui/mobile_controls.gd','scripts/ui/virtual_joystick.gd','scripts/player/player_controller.gd']:
     if (ROOT/obsolete).exists(): errors.append(f'obsolete movement runtime still present: {obsolete}')
+
+content_file=(ROOT/'scripts/mobile/game_content.gd').read_text('utf-8')
+if content_file.count('"number":') != 5:
+    errors.append('V0.4 must define exactly five macro phases')
+if content_file.count('"phase":') < 40:
+    errors.append('V0.4 must define at least forty locations across the five phases')
+for bg in [
+    'phase_1_vale_mortal.svg','phase_2_qinghe.svg','phase_3_ceu_velado.svg',
+    'phase_4_terras_ancestrais.svg','phase_5_nove_ceus.svg'
+]:
+    if not (ROOT/'assets/mobile'/bg).exists():
+        errors.append(f'missing phase background: {bg}')
+audio=(ROOT/'scripts/mobile/mobile_audio.gd').read_text('utf-8')
+for expected in ['play_phase_theme','play_sfx','THEME_NOTES']:
+    if expected not in audio:
+        errors.append(f'mobile audio missing {expected}')
+
 
 print(f'Validated {sum(1 for _ in ROOT.rglob("*.gd"))} GDScript files and {sum(1 for p in ROOT.rglob("*") if p.is_file())} total files.')
 if warnings:
