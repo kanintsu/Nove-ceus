@@ -28,6 +28,7 @@ func _ready() -> void:
 	_spawn_current_life()
 	world_state.calendar_changed.connect(_on_calendar_changed)
 	world_state.chronicle_changed.connect(_refresh_chronicle_if_open)
+	world_state.rare_encounter_changed.connect(_on_rare_encounter_changed)
 	notify("Você desperta aos 16 anos. Neste mundo, cultivar não é um direito garantido.")
 
 func _process(delta: float) -> void:
@@ -44,13 +45,31 @@ func set_interaction_prompt(text_value: String) -> void:
 		hud.set_prompt(text_value)
 
 func advance_days(days: int) -> void:
+	if dead:
+		return
 	world_state.advance_days(days)
+	if player != null:
+		player.life["age"] = world_state.current_age()
 	if hud != null and player != null:
 		hud.update_world(world_state.world_year, world_state.world_day, world_state.incarnation_index)
 		hud.update_player_state(player)
+	_check_natural_lifespan()
 
 func record_world_event(text_value: String) -> void:
 	world_state.record_world_event(text_value)
+
+func get_current_rare_encounter() -> Dictionary:
+	if world_state == null:
+		return {}
+	return world_state.current_rare_encounter
+
+func accept_rare_encounter(_profile: Dictionary) -> bool:
+	if world_state == null or dead:
+		return false
+	return world_state.accept_current_rare_encounter()
+
+func is_life_active() -> bool:
+	return not dead
 
 func on_spiritual_test(diagnosis: String) -> void:
 	if hud == null or player == null:
@@ -190,6 +209,20 @@ func _reincarnate() -> void:
 	_rebuild_world_for_new_era()
 	_spawn_current_life()
 	notify("Anos passaram. O mundo mudou — e você não recebeu garantia alguma de uma vida melhor.")
+
+func _check_natural_lifespan() -> void:
+	if dead or player == null or not is_instance_valid(player):
+		return
+	var mortal_lifespan := int(world_state.current_life.get("natural_lifespan", 72))
+	var lifespan_bonus := 24 if player.realm != "Mortal" else 0
+	if world_state.current_age() >= mortal_lifespan + lifespan_bonus:
+		_on_player_died("velhice")
+
+func _on_rare_encounter_changed(profile: Dictionary) -> void:
+	if world_builder != null and is_instance_valid(world_builder):
+		world_builder.refresh_rare_encounter()
+	if not profile.is_empty():
+		notify("Algo incomum aconteceu na região. A Crônica registrou um novo encontro.")
 
 func _on_calendar_changed(_year: int, _day: int) -> void:
 	if hud != null:
