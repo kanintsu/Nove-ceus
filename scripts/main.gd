@@ -196,6 +196,7 @@ func _on_player_died(cause: String) -> void:
 	var summary := world_state.end_life(cause, world_state.current_age())
 	if player != null:
 		player.set_physics_process(false)
+		player.set_process_unhandled_input(false)
 	var hint := "O mundo não vai esperar sua próxima vida."
 	hud.show_death(summary, hint)
 	record_world_event("uma vida terminou na região; seus pertences foram deixados para o mundo.")
