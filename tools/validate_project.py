@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 errors=[]
 warnings=[]
 
-required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/main.gd', ROOT/'export_presets.cfg']
+required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/mobile/mobile_game.gd', ROOT/'scripts/mobile/mobile_card.gd', ROOT/'export_presets.cfg']
 for p in required:
     if not p.exists(): errors.append(f'missing required file: {p.relative_to(ROOT)}')
 
@@ -55,9 +55,17 @@ for p in ROOT.rglob('*.gd'):
 birth=(ROOT/'scripts/core/birth_system.gd').read_text('utf-8')
 if '"weight": 85' not in birth: warnings.append('mortal baseline is no longer 85%; review rarity design')
 if 'QiPotential.MORTAL' not in birth: errors.append('mortal spiritual state missing')
-main=(ROOT/'scripts/main.gd').read_text('utf-8')
-for expected in ['_reincarnate','on_player_awakened','_on_player_died']:
-    if f'func {expected}' not in main: errors.append(f'main missing {expected}')
+main=(ROOT/'scripts/mobile/mobile_game.gd').read_text('utf-8')
+for expected in ['_reincarnate','_awaken_qi','_end_life','_render_map','_render_inventory','_render_people']:
+    if f'func {expected}' not in main: errors.append(f'mobile game missing {expected}')
+scene=(ROOT/'main.tscn').read_text('utf-8')
+if 'type="Node3D"' in scene: errors.append('main scene must not use Node3D in mobile rebuild')
+if 'scripts/mobile/mobile_game.gd' not in scene: errors.append('main scene is not wired to mobile_game.gd')
+project=(ROOT/'project.godot').read_text('utf-8')
+if 'window/size/viewport_width=720' not in project or 'window/size/viewport_height=1280' not in project:
+    errors.append('mobile rebuild must use 720x1280 portrait viewport')
+for obsolete in ['scripts/ui/mobile_controls.gd','scripts/ui/virtual_joystick.gd','scripts/player/player_controller.gd']:
+    if (ROOT/obsolete).exists(): errors.append(f'obsolete movement runtime still present: {obsolete}')
 
 print(f'Validated {sum(1 for _ in ROOT.rglob("*.gd"))} GDScript files and {sum(1 for p in ROOT.rglob("*") if p.is_file())} total files.')
 if warnings:
