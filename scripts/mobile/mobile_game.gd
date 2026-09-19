@@ -11,6 +11,7 @@ const TacticalCombatScript = preload("res://scripts/mobile/tactical_combat.gd")
 const JourneySystemScript = preload("res://scripts/mobile/journey_system.gd")
 const ContractSystemScript = preload("res://scripts/mobile/contract_system.gd")
 const RelationshipSystemScript = preload("res://scripts/mobile/relationship_system.gd")
+const CultivationSessionScript = preload("res://scripts/mobile/cultivation_session.gd")
 
 const REALMS: Array[String] = [
 	"Mortal",
@@ -516,10 +517,18 @@ func _render_cultivation() -> void:
 	state_card.add_child(_body_label(diagnosis))
 
 	if bool(life.get("qi_awakened",false)):
-		content.add_child(_standalone_button("MEDITAR 30 DIAS","Circular e refinar Qi usando as condições do local atual.",_meditate,"qi"))
+		var methods := _add_card("Método desta sessão")
+		for mode_key in ["safe","compress","temper","insight","reckless"]:
+			var mode: Dictionary = CultivationSessionScript.MODES[mode_key]
+			var mb := Button.new()
+			mb.text = "%s · %d dias\n%s" % [String(mode["name"]),int(mode["days"]),String(mode["text"])]
+			mb.custom_minimum_size = Vector2(0,72)
+			mb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			mb.focus_mode = Control.FOCUS_NONE
+			mb.pressed.connect(_cultivate_mode.bind(mode_key))
+			methods.add_child(mb)
 		if float(life.get("cultivation_progress",0.0)) >= 100.0:
-			content.add_child(_standalone_button("ROMPER O GARGALO","Tentar avançar de reino. Falha pode ferir meridianos.",_breakthrough,"breakthrough"))
-		content.add_child(_standalone_button("CONTEMPLAR O DAO","Transformar experiências em compreensão, não apenas poder bruto.",_comprehend,"qi"))
+			content.add_child(_standalone_button("ROMPER O GARGALO","Tentar avançar de reino. Integridade, Dao e vontade influenciam o resultado.",_breakthrough,"breakthrough"))
 	else:
 		content.add_child(_standalone_button("TENTAR SENTIR O QI","Sete dias de meditação. Não há garantia de resposta.",_try_sense_qi,"qi"))
 		if current_location == "qinghe_city":
@@ -651,7 +660,7 @@ func _perform_location_action(action: String) -> void:
 		"travel": _show_screen("map")
 		"encounter","relationships": _seek_people()
 		"gather": _gather()
-		"meditate": _meditate() if bool(world_state.current_life.get("qi_awakened",false)) else _try_sense_qi()
+		"meditate": _cultivate_mode("safe") if bool(world_state.current_life.get("qi_awakened",false)) else _try_sense_qi()
 		"hunt": _start_tactical_combat("hunt")
 		"explore": _start_journey()
 		"trade": _trade()
@@ -1217,7 +1226,33 @@ func _awaken_qi(source:String) -> void:
 	])
 	audio.play_sfx("breakthrough")
 
+func _cultivate_mode(mode_key:String) -> void:
+	var life := world_state.current_life
+	if not bool(life.get("qi_awakened",false)):
+		_try_sense_qi()
+		return
+	var result: Dictionary = CultivationSessionScript.perform(mode_key,life,float(_location()["qi"]),rng)
+	_advance_days(int(result.get("days",1)))
+	if life_over:
+		return
+	life["cultivation_progress"] = minf(100.0,float(life.get("cultivation_progress",0.0))+float(result.get("progress",0.0)))
+	life["meridian_integrity"] = clampf(float(life.get("meridian_integrity",1.0))+float(result.get("meridian_delta",0.0)),0.18,1.0)
+	life["dao_insight"] = float(life.get("dao_insight",0.0))+float(result.get("dao_gain",0.0))
+	var summary := "%s\n\nProgresso +%.1f%% · Dao +%.1f · Meridianos agora %.0f%%" % [
+		String(result.get("text","Sessão concluída.")),
+		float(result.get("progress",0.0)),float(result.get("dao_gain",0.0)),
+		float(life.get("meridian_integrity",1.0))*100.0
+	]
+	_show_event(String(result.get("name","Cultivo")),summary,[["ENCERRAR SESSÃO",Callable(self,"_close_overlay")]])
+	if bool(result.get("deviation",false)):
+		audio.play_sfx("danger")
+	else:
+		audio.play_sfx("qi")
+	_show_screen("cultivation")
+
 func _meditate() -> void:
+	_cultivate_mode("safe")
+	return
 	var life := world_state.current_life
 	if not bool(life.get("qi_awakened",false)):
 		_try_sense_qi()
