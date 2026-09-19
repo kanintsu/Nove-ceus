@@ -23,11 +23,11 @@ jobs:
       - name: Export Android debug APK
         run: |
           mkdir -p builds
-          godot --headless --verbose --path . --export-debug "Android" builds/NoveCeus-v0.7.apk
-          test -s builds/NoveCeus-v0.7.apk
+          godot --headless --verbose --path . --export-debug "Android" builds/NoveCeus-v0.8.apk
+          test -s builds/NoveCeus-v0.8.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NoveCeus-v0.7-Android
-          path: builds/NoveCeus-v0.7.apk
+          name: NoveCeus-v0.8-Android
+          path: builds/NoveCeus-v0.8.apk
           if-no-files-found: error
