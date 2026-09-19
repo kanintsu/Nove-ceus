@@ -63,6 +63,7 @@ static func roll_rare_encounter(rng: RandomNumberGenerator, world_year: int, day
 		"relation": "desconhecido",
 		"path": role,
 		"career_progress": 0.0,
+		"career_stage": 0,
 		"lifespan": clampi(58 + int(spiritual_birth.get("physique", 50)) / 5 + rng.randi_range(-7, 14), 48, 102),
 	}
 
@@ -103,14 +104,18 @@ static func advance_people(people: Array[Dictionary], years_passed: int, rng: Ra
 			var progress := float(person.get("career_progress", 0.0))
 			progress += float(years_passed) * (0.35 + float(intelligence + willpower) / 240.0)
 			person["career_progress"] = progress
-			if intelligence >= 82 and progress >= 28.0 and String(person.get("path", "")).find("inventor") == -1:
+			var career_stage := int(person.get("career_stage", 0))
+			if intelligence >= 82 and progress >= 28.0 and career_stage < 2:
 				person["path"] = "inventor e estudioso mortal"
+				person["career_stage"] = 2
 				events.append("%s tornou-se conhecido por invenções e estudos no mundo mortal." % String(person.get("name", "Alguém")))
-			elif intelligence >= 68 and progress >= 14.0 and String(person.get("path", "")).find("estudioso") == -1:
+			elif intelligence >= 68 and progress >= 14.0 and career_stage < 1:
 				person["path"] = "estudioso mortal"
+				person["career_stage"] = 1
 				events.append("%s ganhou reputação como estudioso mortal." % String(person.get("name", "Alguém")))
-			elif int(person.get("physique", 50)) >= 76 and progress >= 16.0 and String(person.get("path", "")).find("artista marcial") == -1:
+			elif int(person.get("physique", 50)) >= 76 and progress >= 16.0 and career_stage < 1:
 				person["path"] = "artista marcial mortal"
+				person["career_stage"] = 1
 				events.append("%s alcançou renome como artista marcial mortal." % String(person.get("name", "Alguém")))
 
 		person["last_simulated_year"] = world_year
