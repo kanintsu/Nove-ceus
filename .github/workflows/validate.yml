@@ -23,11 +23,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Import project and parse scripts
         run: |
-          set -o pipefail
-          godot --headless --editor --path . --quit 2>&1 | tee import.log
+          godot --headless --editor --path . --quit > import.log 2>&1
+          cat import.log
           if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" import.log; then exit 1; fi
       - name: Boot main scene briefly
         run: |
-          set -o pipefail
-          godot --headless --path . --quit-after 3 2>&1 | tee boot.log
+          godot --headless --path . --quit-after 3 > boot.log 2>&1
+          cat boot.log
           if grep -E "SCRIPT ERROR|Parse Error|Invalid call|Invalid access|Failed to load script" boot.log; then exit 1; fi
