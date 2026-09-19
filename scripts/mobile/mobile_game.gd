@@ -33,7 +33,19 @@ const REALMS: Array[String] = [
 	"Estabelecimento de Fundação · Pico",
 	"Núcleo Dourado · Inicial", "Núcleo Dourado · Médio", "Núcleo Dourado · Tardio",
 	"Alma Nascente · Inicial", "Alma Nascente · Médio", "Alma Nascente · Tardio",
-	"Transformação da Alma", "Refinamento do Vazio", "Transcendência"
+	"Formação do Espírito",
+	"Transformação Celestial",
+	"Vazio Espiritual",
+	"Transcendência",
+	"Meio Imortal",
+	"Imortal Terreno",
+	"Imortal Celestial",
+	"Imortal Verdadeiro",
+	"Grande Imortal",
+	"Rei Imortal",
+	"Imperador Imortal",
+	"Santo Celestial",
+	"Além do Céu"
 ]
 
 const PHASE_BACKGROUNDS := {

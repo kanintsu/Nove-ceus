@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 errors=[]
 warnings=[]
 
-required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/mobile/mobile_game.gd', ROOT/'scripts/mobile/mobile_card.gd', ROOT/'scripts/mobile/game_content.gd', ROOT/'scripts/mobile/mobile_audio.gd', ROOT/'scripts/mobile/mobile_fx.gd', ROOT/'scripts/mobile/tactical_combat.gd', ROOT/'scripts/mobile/journey_system.gd', ROOT/'scripts/mobile/contract_system.gd', ROOT/'scripts/mobile/relationship_system.gd', ROOT/'scripts/mobile/cultivation_session.gd', ROOT/'scripts/mobile/world_event_system.gd', ROOT/'scripts/mobile/sect_mission_system.gd', ROOT/'scripts/mobile/celestial_backdrop.gd', ROOT/'scripts/mobile/nav_tile.gd', ROOT/'scripts/mobile/event_card.gd', ROOT/'scripts/mobile/ornate_separator.gd', ROOT/'scripts/mobile/portrait_medallion.gd', ROOT/'scripts/mobile/cultivation_diagram.gd', ROOT/'scripts/mobile/inventory_tile.gd', ROOT/'export_presets.cfg']
+required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/mobile/mobile_game.gd', ROOT/'scripts/mobile/mobile_card.gd', ROOT/'scripts/mobile/game_content.gd', ROOT/'scripts/mobile/mobile_audio.gd', ROOT/'scripts/mobile/mobile_fx.gd', ROOT/'scripts/mobile/tactical_combat.gd', ROOT/'scripts/mobile/journey_system.gd', ROOT/'scripts/mobile/contract_system.gd', ROOT/'scripts/mobile/relationship_system.gd', ROOT/'scripts/mobile/cultivation_session.gd', ROOT/'scripts/mobile/world_event_system.gd', ROOT/'scripts/mobile/sect_mission_system.gd', ROOT/'scripts/mobile/celestial_backdrop.gd', ROOT/'scripts/mobile/nav_tile.gd', ROOT/'scripts/mobile/event_card.gd', ROOT/'scripts/mobile/ornate_separator.gd', ROOT/'scripts/mobile/portrait_medallion.gd', ROOT/'scripts/mobile/cultivation_diagram.gd', ROOT/'scripts/mobile/inventory_tile.gd', ROOT/'scripts/v08/v08_game.gd', ROOT/'scripts/v08/home_screen.gd', ROOT/'scripts/v08/world_map_screen.gd', ROOT/'scripts/v08/cultivation_screen.gd', ROOT/'scripts/v08/realms_screen.gd', ROOT/'scripts/v08/inventory_screen.gd', ROOT/'scripts/v08/people_screen.gd', ROOT/'scripts/v08/base_screen.gd', ROOT/'scripts/v08/missions_screen.gd', ROOT/'scripts/v08/sect_screen.gd', ROOT/'scripts/v08/lifecycle_screen.gd', ROOT/'scripts/v08/legacy_screen.gd', ROOT/'scripts/v08/combat_screen.gd', ROOT/'scripts/v08/more_screen.gd', ROOT/'export_presets.cfg']
 for p in required:
     if not p.exists(): errors.append(f'missing required file: {p.relative_to(ROOT)}')
 
@@ -60,7 +60,7 @@ for expected in ['_reincarnate','_awaken_qi','_end_life','_render_map','_render_
     if f'func {expected}' not in main: errors.append(f'mobile game missing {expected}')
 scene=(ROOT/'main.tscn').read_text('utf-8')
 if 'type="Node3D"' in scene: errors.append('main scene must not use Node3D in mobile rebuild')
-if 'scripts/mobile/mobile_game.gd' not in scene: errors.append('main scene is not wired to mobile_game.gd')
+if 'scripts/v08/v08_game.gd' not in scene: errors.append('main scene is not wired to the V0.8 game controller')
 project=(ROOT/'project.godot').read_text('utf-8')
 if 'window/size/viewport_width=720' not in project or 'window/size/viewport_height=1280' not in project:
     errors.append('mobile rebuild must use 720x1280 portrait viewport')
@@ -119,3 +119,14 @@ for expected in ['CelestialBackdropScript','NavTileScript','EventCardScript','Cu
         errors.append(f'V0.7 visual rebuild missing {expected}')
 if 'TextureRect.new()\n\tbackground' in visual:
     errors.append('V0.7 must not rebuild the old fullscreen TextureRect background')
+
+main_scene=(ROOT/'main.tscn').read_text('utf-8')
+if 'res://scripts/v08/v08_game.gd' not in main_scene:
+    errors.append('V0.8 main scene must boot the new screen architecture')
+v08=(ROOT/'scripts/v08/v08_game.gd').read_text('utf-8')
+for forbidden in ['TextureRect.new()', 'PHASE_BACKGROUNDS', 'avatar_mortal.svg', 'bg_cultivation.svg']:
+    if forbidden in v08:
+        errors.append(f'V0.8 must not mask the lobby with legacy visual asset: {forbidden}')
+for required in ['V08Home','V08Map','V08Cultivation','V08Inventory','V08People','V08Base','V08Missions','V08Sect','V08Lifecycle','V08Legacy','V08Combat','V08More']:
+    if required not in v08:
+        errors.append(f'V0.8 missing dedicated screen: {required}')
