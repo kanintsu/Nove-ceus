@@ -10,6 +10,7 @@ const PHASES: Array[Dictionary] = [
 		"required_realm":0,
 		"theme":"mortal_valley",
 		"accent":"jade",
+		"goal":"Sobreviver, construir uma vida mortal e descobrir se existe um caminho além do corpo comum.",
 	},
 	{
 		"id":"phase_2",
@@ -19,6 +20,7 @@ const PHASES: Array[Dictionary] = [
 		"required_realm":1,
 		"theme":"qinghe",
 		"accent":"amber",
+		"goal":"Entrar no mundo dos cultivadores sem perder sua identidade, relações e recursos mortais.",
 	},
 	{
 		"id":"phase_3",
@@ -28,6 +30,7 @@ const PHASES: Array[Dictionary] = [
 		"required_realm":4,
 		"theme":"veiled_mountain",
 		"accent":"azure",
+		"goal":"Aprender técnicas verdadeiras, criar vínculos e provar que sua fundação merece permanecer.",
 	},
 	{
 		"id":"phase_4",
@@ -37,6 +40,7 @@ const PHASES: Array[Dictionary] = [
 		"required_realm":10,
 		"theme":"ancestral_wilds",
 		"accent":"crimson",
+		"goal":"Sobreviver a territórios que não pertencem aos humanos e conquistar oportunidades que outros também desejam.",
 	},
 	{
 		"id":"phase_5",
@@ -46,6 +50,7 @@ const PHASES: Array[Dictionary] = [
 		"required_realm":17,
 		"theme":"nine_heavens",
 		"accent":"celestial",
+		"goal":"Enfrentar tribulação, compreender seu Dao e decidir o que sua existência deixará para o mundo.",
 	}
 ]
 
