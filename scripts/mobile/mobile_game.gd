@@ -756,7 +756,7 @@ func _explore() -> void:
 	_advance_days(3 + _current_phase())
 	if life_over: return
 	var danger := String(_location()["danger"])
-	var danger_chance := {"Baixo":0.02,"Médio":0.07,"Alto":0.14,"Extremo":0.22,"Lendário":0.28}.get(danger,0.05)
+	var danger_chance: float = float({"Baixo":0.02,"Médio":0.07,"Alto":0.14,"Extremo":0.22,"Lendário":0.28}.get(danger,0.05))
 	if rng.randf() < float(danger_chance):
 		_show_event("O LUGAR REAGIU À SUA PRESENÇA","Você entrou fundo demais. Algo perigoso bloqueia o caminho.",[
 			["RECUAR",Callable(self,"_event_flee")],
