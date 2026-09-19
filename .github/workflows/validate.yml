@@ -1,0 +1,21 @@
+name: Validate Godot Project
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.7.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static project checks
+        run: python3 tools/validate_project.py
+      - name: Import project and parse scripts
+        run: godot --headless --editor --path . --quit
+      - name: Boot main scene briefly
+        run: godot --headless --path . --quit-after 3
