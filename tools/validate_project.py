@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 errors=[]
 warnings=[]
 
-required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/mobile/mobile_game.gd', ROOT/'scripts/mobile/mobile_card.gd', ROOT/'scripts/mobile/game_content.gd', ROOT/'scripts/mobile/mobile_audio.gd', ROOT/'scripts/mobile/mobile_fx.gd', ROOT/'scripts/mobile/tactical_combat.gd', ROOT/'scripts/mobile/journey_system.gd', ROOT/'scripts/mobile/contract_system.gd', ROOT/'scripts/mobile/relationship_system.gd', ROOT/'scripts/mobile/cultivation_session.gd', ROOT/'scripts/mobile/world_event_system.gd', ROOT/'scripts/mobile/sect_mission_system.gd', ROOT/'export_presets.cfg']
+required=[ROOT/'project.godot', ROOT/'main.tscn', ROOT/'scripts/mobile/mobile_game.gd', ROOT/'scripts/mobile/mobile_card.gd', ROOT/'scripts/mobile/game_content.gd', ROOT/'scripts/mobile/mobile_audio.gd', ROOT/'scripts/mobile/mobile_fx.gd', ROOT/'scripts/mobile/tactical_combat.gd', ROOT/'scripts/mobile/journey_system.gd', ROOT/'scripts/mobile/contract_system.gd', ROOT/'scripts/mobile/relationship_system.gd', ROOT/'scripts/mobile/cultivation_session.gd', ROOT/'scripts/mobile/world_event_system.gd', ROOT/'scripts/mobile/sect_mission_system.gd', ROOT/'scripts/mobile/celestial_backdrop.gd', ROOT/'scripts/mobile/nav_tile.gd', ROOT/'scripts/mobile/event_card.gd', ROOT/'scripts/mobile/ornate_separator.gd', ROOT/'scripts/mobile/portrait_medallion.gd', ROOT/'scripts/mobile/cultivation_diagram.gd', ROOT/'scripts/mobile/inventory_tile.gd', ROOT/'export_presets.cfg']
 for p in required:
     if not p.exists(): errors.append(f'missing required file: {p.relative_to(ROOT)}')
 
@@ -109,3 +109,13 @@ if errors:
     for e in errors: print(' -',e)
     sys.exit(1)
 print('Static project validation: PASS')
+
+visual=(ROOT/'scripts/mobile/mobile_game.gd').read_text('utf-8')
+for forbidden in ['background.texture = load(String(PHASE_BACKGROUNDS','bg_cultivation.svg']:
+    if forbidden in visual:
+        errors.append(f'V0.7 still masks old visual with static background asset: {forbidden}')
+for expected in ['CelestialBackdropScript','NavTileScript','EventCardScript','CultivationDiagramScript','InventoryTileScript']:
+    if expected not in visual:
+        errors.append(f'V0.7 visual rebuild missing {expected}')
+if 'TextureRect.new()\n\tbackground' in visual:
+    errors.append('V0.7 must not rebuild the old fullscreen TextureRect background')
